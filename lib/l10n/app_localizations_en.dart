@@ -45,6 +45,29 @@ class L10nEn extends L10n {
   String get expenseAmount => 'Amount';
 
   @override
+  String get receiptTitle => 'Receipt';
+
+  @override
+  String get receiptScan => 'Scan';
+
+  @override
+  String get receiptAttach => 'Attach';
+
+  @override
+  String get receiptRemove => 'Remove receipt';
+
+  @override
+  String get receiptScanning => 'Reading receipt…';
+
+  @override
+  String get receiptFromScanVerify =>
+      'Filled from scan — please check every value';
+
+  @override
+  String get receiptScanNothing =>
+      'Couldn\'t read any values — please enter them manually';
+
+  @override
   String get projectsTitle => 'Projects';
 
   @override

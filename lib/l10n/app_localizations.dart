@@ -171,6 +171,48 @@ abstract class L10n {
   /// **'Amount'**
   String get expenseAmount;
 
+  /// No description provided for @receiptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Receipt'**
+  String get receiptTitle;
+
+  /// No description provided for @receiptScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get receiptScan;
+
+  /// No description provided for @receiptAttach.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach'**
+  String get receiptAttach;
+
+  /// No description provided for @receiptRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove receipt'**
+  String get receiptRemove;
+
+  /// No description provided for @receiptScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading receipt…'**
+  String get receiptScanning;
+
+  /// No description provided for @receiptFromScanVerify.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled from scan — please check every value'**
+  String get receiptFromScanVerify;
+
+  /// No description provided for @receiptScanNothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read any values — please enter them manually'**
+  String get receiptScanNothing;
+
   /// No description provided for @projectsTitle.
   ///
   /// In en, this message translates to:

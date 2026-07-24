@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
@@ -9,6 +12,8 @@ import '../../data/db/database.dart';
 import '../../data/providers.dart';
 import '../../domain/tax/expense_categories.dart';
 import '../../l10n/app_localizations.dart';
+import 'receipt_image.dart';
+import 'receipt_ocr.dart';
 
 class ExpensesScreen extends ConsumerWidget {
   const ExpensesScreen({super.key});
@@ -84,11 +89,18 @@ class ExpensesScreen extends ConsumerWidget {
                     onDismissed: (_) =>
                         ref.read(repositoryProvider).deleteExpense(e.id),
                     child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor:
-                            Theme.of(context).colorScheme.secondaryContainer,
-                        child: Icon(_categoryIcon(e.category), size: 18),
-                      ),
+                      leading: e.receiptImage != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.memory(e.receiptImage!,
+                                  width: 40, height: 40, fit: BoxFit.cover),
+                            )
+                          : CircleAvatar(
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer,
+                              child: Icon(_categoryIcon(e.category), size: 18),
+                            ),
                       title: Text(
                           e.description.isEmpty ? cat.labelFor(lang) : e.description),
                       subtitle: Text([
@@ -167,6 +179,10 @@ class _ExpenseEditorState extends ConsumerState<_ExpenseEditor> {
               .asMajor
               .toString());
   late bool _deductible = widget.expense?.deductible ?? true;
+  late Uint8List? _receiptBytes = widget.expense?.receiptImage;
+  late String? _receiptMime = widget.expense?.receiptMime;
+  bool _fromScan = false;
+  bool _busy = false;
 
   Currency get _cur => Currency.fromCode(_currency);
   Money get _amountMoney => Money.fromMajor(
@@ -196,6 +212,180 @@ class _ExpenseEditorState extends ConsumerState<_ExpenseEditor> {
     _vat.text = vat.isZero ? '' : vat.asMajor.toString();
   }
 
+  /// Picks a receipt from [source], stores it, and — when [runOcr] and the
+  /// platform supports OCR — reads it to pre-fill the fields.
+  Future<void> _addReceipt(ImageSource source, {required bool runOcr}) async {
+    setState(() => _busy = true);
+    try {
+      final picked = await pickReceipt(source);
+      if (picked == null) return; // cancelled
+      if (!mounted) return;
+      setState(() {
+        _receiptBytes = picked.bytes;
+        _receiptMime = picked.mime;
+        _fromScan = false;
+      });
+      if (runOcr && ocrSupported) {
+        final scan = await scanReceipt(picked);
+        if (!mounted) return;
+        if (scan == null || scan.isEmpty) {
+          _snack(L10n.of(context).receiptScanNothing);
+        } else {
+          _applyScan(scan);
+        }
+      }
+    } catch (e) {
+      if (mounted) _snack('$e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Copies best-effort scanned values into the editor fields, leaving anything
+  /// the parser wasn't sure about untouched. Flags the form as scan-derived so
+  /// the user is prompted to verify.
+  void _applyScan(ScannedReceipt s) {
+    setState(() {
+      _fromScan = true;
+      if (s.currency != null) _currency = s.currency!;
+      if (s.date != null) _date = s.date!;
+      if (s.vatRate != null) _vatRate = s.vatRate!;
+      if (s.amountMajor != null) {
+        _amount.text = _formatMajor(s.amountMajor!, _cur);
+      }
+      if (s.vatMajor != null) {
+        _vat.text = _formatMajor(s.vatMajor!, _cur);
+      } else if (s.amountMajor != null && _vatRate > 0) {
+        _recomputeVatFromGross();
+      }
+      if (_desc.text.trim().isEmpty && s.vendor != null) {
+        _desc.text = s.vendor!;
+      }
+    });
+  }
+
+  String _formatMajor(double value, Currency cur) =>
+      cur.decimals == 0 ? value.round().toString() : value.toStringAsFixed(cur.decimals);
+
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _viewReceipt() {
+    final bytes = _receiptBytes;
+    if (bytes == null) return;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        insetPadding: const EdgeInsets.all(16),
+        child: GestureDetector(
+          onTap: () => Navigator.of(ctx).pop(),
+          child: InteractiveViewer(
+            child: Image.memory(bytes, fit: BoxFit.contain),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReceiptSection(BuildContext context, L10n l10n) {
+    final scheme = Theme.of(context).colorScheme;
+    final bytes = _receiptBytes;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(children: [
+          if (bytes != null) ...[
+            InkWell(
+              onTap: _viewReceipt,
+              borderRadius: BorderRadius.circular(8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.memory(bytes,
+                    width: 52, height: 68, fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: TextButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () => setState(() {
+                          _receiptBytes = null;
+                          _receiptMime = null;
+                          _fromScan = false;
+                        }),
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: Text(l10n.receiptRemove),
+                style: TextButton.styleFrom(
+                    alignment: AlignmentDirectional.centerStart),
+              ),
+            ),
+          ] else if (_busy)
+            Expanded(
+              child: Row(children: [
+                const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2)),
+                const SizedBox(width: 12),
+                Text(l10n.receiptScanning),
+              ]),
+            )
+          else if (ocrSupported) ...[
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    _addReceipt(ImageSource.camera, runOcr: true),
+                icon: const Icon(Icons.document_scanner_outlined, size: 18),
+                label: Text(l10n.receiptScan),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    _addReceipt(ImageSource.gallery, runOcr: true),
+                icon: const Icon(Icons.photo_library_outlined, size: 18),
+                label: Text(l10n.receiptAttach),
+              ),
+            ),
+          ] else
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    _addReceipt(ImageSource.gallery, runOcr: false),
+                icon: const Icon(Icons.attach_file, size: 18),
+                label: Text(l10n.receiptAttach),
+              ),
+            ),
+        ]),
+        if (_fromScan) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: scheme.tertiaryContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(children: [
+              Icon(Icons.fact_check_outlined,
+                  size: 18, color: scheme.onTertiaryContainer),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(l10n.receiptFromScanVerify,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: scheme.onTertiaryContainer)),
+              ),
+            ]),
+          ),
+        ],
+      ],
+    );
+  }
+
   Future<void> _save() async {
     final amount = _amountMoney;
     if (amount.isZero) return;
@@ -212,6 +402,8 @@ class _ExpenseEditorState extends ConsumerState<_ExpenseEditor> {
       currency: Value(_currency),
       deductible: Value(_deductible),
       businessUsePercent: Value(_businessUse),
+      receiptImage: Value(_receiptBytes),
+      receiptMime: Value(_receiptMime),
     ));
     if (mounted) Navigator.of(context).pop();
   }
@@ -242,6 +434,8 @@ class _ExpenseEditorState extends ConsumerState<_ExpenseEditor> {
             Text(widget.expense == null ? l10n.commonAdd : l10n.commonEdit,
                 style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 16),
+            _buildReceiptSection(context, l10n),
+            const SizedBox(height: 12),
             Row(children: [
               Expanded(
                 child: OutlinedButton.icon(

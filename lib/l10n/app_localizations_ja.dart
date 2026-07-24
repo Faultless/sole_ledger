@@ -45,6 +45,27 @@ class L10nJa extends L10n {
   String get expenseAmount => '金額';
 
   @override
+  String get receiptTitle => 'レシート';
+
+  @override
+  String get receiptScan => 'スキャン';
+
+  @override
+  String get receiptAttach => '添付';
+
+  @override
+  String get receiptRemove => 'レシートを削除';
+
+  @override
+  String get receiptScanning => 'レシートを読み取り中…';
+
+  @override
+  String get receiptFromScanVerify => 'スキャンから入力しました — 各項目をご確認ください';
+
+  @override
+  String get receiptScanNothing => '値を読み取れませんでした — 手動で入力してください';
+
+  @override
   String get projectsTitle => 'プロジェクト';
 
   @override

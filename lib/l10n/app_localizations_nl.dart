@@ -45,6 +45,29 @@ class L10nNl extends L10n {
   String get expenseAmount => 'Bedrag';
 
   @override
+  String get receiptTitle => 'Bon';
+
+  @override
+  String get receiptScan => 'Scannen';
+
+  @override
+  String get receiptAttach => 'Toevoegen';
+
+  @override
+  String get receiptRemove => 'Bon verwijderen';
+
+  @override
+  String get receiptScanning => 'Bon wordt gelezen…';
+
+  @override
+  String get receiptFromScanVerify =>
+      'Ingevuld via scan — controleer elke waarde';
+
+  @override
+  String get receiptScanNothing =>
+      'Geen waarden herkend — voer ze handmatig in';
+
+  @override
   String get projectsTitle => 'Projecten';
 
   @override
