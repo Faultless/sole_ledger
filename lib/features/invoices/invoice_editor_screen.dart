@@ -1,0 +1,488 @@
+import 'package:collection/collection.dart';
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+import '../../core/format/formatters.dart';
+import '../../core/money/currency.dart';
+import '../../core/money/money.dart';
+import '../../core/widgets/labels.dart';
+import '../../data/db/database.dart';
+import '../../data/providers.dart';
+import '../../domain/enums.dart';
+import '../../domain/tax/invoice_totals.dart';
+import '../../domain/tax/vat_treatment.dart';
+import '../../l10n/app_localizations.dart';
+
+/// A single editable invoice line, owning its own text controllers.
+class _EditLine {
+  _EditLine({
+    required this.description,
+    required double quantity,
+    required double unitPrice,
+    required this.treatment,
+  })  : descCtrl = TextEditingController(text: description),
+        qtyCtrl = TextEditingController(text: _trim(quantity)),
+        priceCtrl = TextEditingController(text: _trim(unitPrice));
+
+  final TextEditingController descCtrl;
+  final TextEditingController qtyCtrl;
+  final TextEditingController priceCtrl;
+  String description;
+  VatTreatment treatment;
+  String unit = 'hours';
+
+  double get quantity =>
+      double.tryParse(qtyCtrl.text.replaceAll(',', '.').trim()) ?? 0;
+  double get unitPrice =>
+      double.tryParse(priceCtrl.text.replaceAll(',', '.').trim()) ?? 0;
+
+  static String _trim(double v) =>
+      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+
+  void dispose() {
+    descCtrl.dispose();
+    qtyCtrl.dispose();
+    priceCtrl.dispose();
+  }
+}
+
+class InvoiceEditorScreen extends ConsumerStatefulWidget {
+  const InvoiceEditorScreen({super.key});
+  @override
+  ConsumerState<InvoiceEditorScreen> createState() =>
+      _InvoiceEditorScreenState();
+}
+
+class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
+  String? _clientId;
+  Currency _currency = Currency.eur;
+  String _language = 'nl';
+  DateTime _issueDate = DateTime.now();
+  DateTime _dueDate = DateTime.now().add(const Duration(days: 30));
+  final _poCtrl = TextEditingController();
+  final _notesCtrl = TextEditingController();
+  final List<_EditLine> _lines = [];
+  final Set<String> _pulledEntryIds = {};
+  bool _saving = false;
+
+  @override
+  void dispose() {
+    _poCtrl.dispose();
+    _notesCtrl.dispose();
+    for (final l in _lines) {
+      l.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _applyClient(Client client) async {
+    final repo = ref.read(repositoryProvider);
+    final profile = ref.read(businessProfileProvider).value;
+    setState(() {
+      _clientId = client.id;
+      _currency = Currency.fromCode(client.defaultCurrency);
+      _language = client.language;
+      _dueDate = _issueDate.add(Duration(days: client.paymentTermDays));
+    });
+    // Auto-pull unbilled time, grouped into lines per project.
+    final entries = await repo.unbilledEntriesForClient(client.id);
+    final projects = await repo.projectsForClient(client.id);
+    if (entries.isNotEmpty && mounted) {
+      _pullEntries(entries, client, profile, {for (final p in projects) p.id: p});
+    }
+  }
+
+  void _pullEntries(List<TimeEntry> entries, Client client,
+      BusinessProfile? profile, Map<String, Project> projects) {
+    final clientRate = client.defaultHourlyRate ?? profile?.defaultHourlyRate ?? 0;
+    final treatment = VatTreatment.byName(client.defaultVatTreatment);
+    // Group by project (null project => one combined line).
+    final byProject = groupBy(entries, (TimeEntry e) => e.projectId);
+    setState(() {
+      byProject.forEach((projectId, group) {
+        final minutes = group.fold<int>(0, (s, e) => s + e.minutes);
+        final project = projectId == null ? null : projects[projectId];
+        _lines.add(_EditLine(
+          description: project?.name ?? 'Professional services',
+          quantity: minutes / 60.0,
+          unitPrice: project?.hourlyRate ?? clientRate,
+          treatment: treatment,
+        ));
+        _pulledEntryIds.addAll(group.map((e) => e.id));
+      });
+    });
+  }
+
+  void _addBlankLine() {
+    final treatment = _clientId == null
+        ? VatTreatment.reverseChargeEu
+        : VatTreatment.byName(
+            (ref.read(clientsProvider).value ?? [])
+                    .firstWhereOrNull((c) => c.id == _clientId)
+                    ?.defaultVatTreatment ??
+                'reverseChargeEu');
+    setState(() {
+      _lines.add(_EditLine(
+        description: '',
+        quantity: 1,
+        unitPrice: 0,
+        treatment: treatment,
+      ));
+    });
+  }
+
+  InvoiceTotals _computeTotals() {
+    final taxable = _lines
+        .map((l) => TaxableLine(
+              net: Money.fromMajor(l.unitPrice, _currency).times(l.quantity),
+              treatment: l.treatment,
+            ))
+        .toList();
+    return InvoiceCalculator.compute(taxable, _currency);
+  }
+
+  Future<void> _save() async {
+    if (_clientId == null || _lines.isEmpty || _saving) return;
+    setState(() => _saving = true);
+    final repo = ref.read(repositoryProvider);
+    final totals = _computeTotals();
+    final number = await repo.nextInvoiceNumber();
+    final id = repo.newId();
+
+    final lineCompanions = <InvoiceLinesCompanion>[];
+    for (var i = 0; i < _lines.length; i++) {
+      final l = _lines[i];
+      lineCompanions.add(InvoiceLinesCompanion.insert(
+        id: repo.newId(),
+        invoiceId: id,
+        description: l.descCtrl.text.trim().isEmpty
+            ? 'Professional services'
+            : l.descCtrl.text.trim(),
+        unitPriceMinor: Money.fromMajor(l.unitPrice, _currency).minorUnits,
+        quantity: Value(l.quantity),
+        unit: Value(l.unit),
+        vatTreatment: Value(l.treatment.name),
+        sortOrder: Value(i),
+      ));
+    }
+
+    await repo.createInvoice(
+      invoice: InvoicesCompanion.insert(
+        id: id,
+        number: number,
+        clientId: _clientId!,
+        issueDate: _issueDate,
+        dueDate: _dueDate,
+        createdAt: DateTime.now(),
+        currency: Value(_currency.code),
+        language: Value(_language),
+        status: Value(InvoiceStatus.draft.name),
+        purchaseOrder: Value(_poCtrl.text.trim()),
+        notes: Value(_notesCtrl.text.trim()),
+        subtotalMinor: Value(totals.net.minorUnits),
+        taxMinor: Value(totals.taxTotal.minorUnits),
+        totalMinor: Value(totals.gross.minorUnits),
+      ),
+      lines: lineCompanions,
+      timeEntryIds: _pulledEntryIds.toList(),
+    );
+
+    if (mounted) context.go('/invoices/$id');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
+    final fmt = ref.watch(formattersProvider);
+    final clients = ref.watch(clientsProvider).value ?? const [];
+    final totals = _computeTotals();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(l10n.dashboardQuickInvoice),
+        leading: IconButton(
+          icon: const Icon(Icons.close),
+          onPressed: () => context.go('/invoices'),
+        ),
+      ),
+      bottomNavigationBar: _SaveBar(
+        total: fmt.money(totals.gross),
+        enabled: _clientId != null && _lines.isNotEmpty && !_saving,
+        onSave: _save,
+        label: l10n.commonSave,
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            // Client + meta
+            DropdownButtonFormField<String>(
+              initialValue: _clientId,
+              decoration: InputDecoration(labelText: l10n.invoiceBillTo),
+              items: [
+                for (final c in clients)
+                  DropdownMenuItem(value: c.id, child: Text(c.name)),
+              ],
+              onChanged: (v) {
+                final c = clients.firstWhereOrNull((c) => c.id == v);
+                if (c != null) _applyClient(c);
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(children: [
+              Expanded(
+                child: _DateField(
+                  label: l10n.invoiceIssueDate,
+                  value: _issueDate,
+                  format: fmt.date,
+                  onPick: (d) => setState(() => _issueDate = d),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _DateField(
+                  label: l10n.invoiceDueDate,
+                  value: _dueDate,
+                  format: fmt.date,
+                  onPick: (d) => setState(() => _dueDate = d),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Text(l10n.invoiceDescription,
+                    style: Theme.of(context).textTheme.titleMedium),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: _addBlankLine,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(l10n.commonAdd),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_lines.isEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    _clientId == null
+                        ? 'Select a client — any unbilled time will be pulled in automatically.'
+                        : 'No lines yet. Add one manually.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ),
+              ),
+            for (final line in _lines) _lineCard(line, l10n),
+            const SizedBox(height: 16),
+            _TotalsCard(totals: totals, fmt: fmt, l10n: l10n),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _notesCtrl,
+              decoration: InputDecoration(labelText: l10n.invoiceThankYou),
+              maxLines: 2,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _lineCard(_EditLine line, L10n l10n) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: line.descCtrl,
+                    decoration:
+                        InputDecoration(labelText: l10n.invoiceDescription),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed: () => setState(() {
+                    line.dispose();
+                    _lines.remove(line);
+                  }),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: line.qtyCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(labelText: l10n.invoiceQuantity),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: line.priceCtrl,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: l10n.invoiceUnitPrice,
+                    prefixText: '${_currency.symbol} ',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<VatTreatment>(
+              initialValue: line.treatment,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'VAT', isDense: true),
+              items: [
+                for (final t in VatTreatment.values)
+                  DropdownMenuItem(
+                    value: t,
+                    child: Text(vatTreatmentLabel(l10n, t),
+                        overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: (v) => setState(
+                  () => line.treatment = v ?? VatTreatment.reverseChargeEu),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DateField extends StatelessWidget {
+  const _DateField({
+    required this.label,
+    required this.value,
+    required this.format,
+    required this.onPick,
+  });
+  final String label;
+  final DateTime value;
+  final String Function(DateTime) format;
+  final ValueChanged<DateTime> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: value,
+          firstDate: DateTime(2020),
+          lastDate: DateTime(2100),
+        );
+        if (picked != null) onPick(picked);
+      },
+      child: InputDecorator(
+        decoration: InputDecoration(labelText: label),
+        child: Text(format(value)),
+      ),
+    );
+  }
+}
+
+class _TotalsCard extends StatelessWidget {
+  const _TotalsCard(
+      {required this.totals, required this.fmt, required this.l10n});
+  final InvoiceTotals totals;
+  final Formatters fmt;
+  final L10n l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            _row(context, l10n.commonNet, fmt.money(totals.net)),
+            for (final g in totals.taxGroups)
+              if (!g.tax.isZero)
+                _row(context, vatTreatmentLabel(l10n, g.treatment),
+                    fmt.money(g.tax)),
+            const Divider(),
+            _row(context, l10n.commonTotal, fmt.money(totals.gross), bold: true),
+            if (totals.printsReverseChargeStatement) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(
+                  vatTreatmentNote(l10n, VatTreatment.reverseChargeEu),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(BuildContext context, String label, String value,
+      {bool bold = false}) {
+    final style = bold
+        ? Theme.of(context).textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700)
+        : Theme.of(context).textTheme.bodyMedium;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: style)),
+          Text(value, style: style),
+        ],
+      ),
+    );
+  }
+}
+
+class _SaveBar extends StatelessWidget {
+  const _SaveBar({
+    required this.total,
+    required this.enabled,
+    required this.onSave,
+    required this.label,
+  });
+  final String total;
+  final bool enabled;
+  final VoidCallback onSave;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            const SizedBox(width: 8),
+            Text(total, style: Theme.of(context).textTheme.titleLarge),
+            const Spacer(),
+            FilledButton.icon(
+              onPressed: enabled ? onSave : null,
+              icon: const Icon(Icons.check),
+              label: Text(label),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
