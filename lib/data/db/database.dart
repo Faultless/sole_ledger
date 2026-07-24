@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import 'db_location.dart';
+
 part 'database.g.dart';
 
 // ---------------------------------------------------------------------------
@@ -179,6 +181,9 @@ class AppDatabase extends _$AppDatabase {
   /// the drift worker, both shipped from `web/` (see README for provenance).
   static QueryExecutor _openConnection() => driftDatabase(
         name: 'sole_ledger',
+        // On desktop this pins the DB to ~/SoleLedger so Syncthing can sync the
+        // single ledger file; null on mobile keeps drift's app-documents path.
+        native: DriftNativeOptions(databasePath: fixedDatabasePath()),
         web: DriftWebOptions(
           sqlite3Wasm: Uri.parse('sqlite3.wasm'),
           driftWorker: Uri.parse('drift_worker.js'),

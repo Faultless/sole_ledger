@@ -56,15 +56,16 @@ lib/
 | Expenses (entry, categories, VAT auto-split, deductible YTD) | ✅ done |
 | Projects per client (client detail screen, wired into time + invoices) | ✅ done |
 | Deductible helpers: JP 勘定科目 categories, 家事按分 proration, deductibility hints | ✅ done |
+| Receipts: attach image (stored in-DB), offline OCR pre-fill on Android/iOS | ✅ done |
 
 The business trade name defaults to **Frontendienst** (seeded in the first business-profile row).
-Expenses schema is at **v2** (added `businessUsePercent` for 家事按分; migration in `AppDatabase`).
+Expenses schema is at **v3** (v2 added `businessUsePercent` for 家事按分; v3 added `receiptImage`/
+`receiptMime` for in-DB receipts; migrations + `beforeOpen` self-heal in `AppDatabase`).
 
 ### Possible next steps
-- Runtime smoke-test on web (Google-Fonts fetch + Drift WASM needs COOP/COEP headers when served) and on an Android device.
+- Runtime smoke-test on an Android device (web verified — see below).
 - Multi-currency FX handling beyond the single EUR→JPY rate used in the annual report.
 - Signature image capture and business logo upload (fields exist in the schema).
-- Receipt image attachment for expenses (`receiptPath` column exists, no picker yet).
 - Depreciation schedule for assets ≥ ¥100,000 (currently a single-line expense + hint).
 
 ## Web runtime assets
@@ -77,11 +78,57 @@ artifacts**, not source. Provenance (keep in sync with `pubspec.lock`):
 
 Re-fetch these to matching versions whenever `drift` / `sqlite3` are upgraded.
 
+## Receipts (attach + OCR)
+
+Expenses can carry a receipt image. It's stored **in the database as a compressed JPEG**
+(`receiptImage` blob), so the whole ledger stays a single portable file — nothing loose on disk to
+back up or sync separately. Capture is cross-platform (camera/gallery on mobile, file dialog on
+desktop/web via `file_selector`/`image_picker`).
+
+**Offline OCR** (`google_mlkit_text_recognition`) runs **on-device on Android/iOS only** — web and
+desktop fall back to manual entry (isolated behind a conditional import so the web bundle stays
+clean). Scanning reads the receipt and *pre-fills* amount / VAT / rate / date / currency, then shows
+a "please verify" banner — it never auto-saves. The extraction is heuristic (`receipt_parser.dart`,
+unit-tested for NL and JP layouts); always check the values.
+
+## Data storage & sync
+
+Where the database lives depends on the platform:
+
+| Platform | Location |
+|----------|----------|
+| **Desktop** (macOS/Linux/Windows) | `~/SoleLedger/sole_ledger.sqlite` (override with `$SOLE_LEDGER_DIR`) |
+| **Mobile** (Android/iOS) | app documents directory (drift default) |
+| **Web** | browser OPFS (sandboxed — not reachable by a file syncer) |
+
+The desktop path is deliberately a **fixed, user-visible folder** so you can point **Syncthing**
+(or any file syncer) at `~/SoleLedger` and keep the ledger in sync across devices. Settings →
+*Data & sync* shows the exact path with a copy button.
+
+**Sync discipline:** SQLite database files cannot be merged. Edit on **one device at a time** and let
+Syncthing settle before switching, or you'll get conflict copies. The recommended topology is the
+**laptop desktop app as source of truth**, syncing the single `.sqlite` file to other native devices.
+The web build can't participate (its OPFS store is sandboxed) — use it as a read-only/quick-look
+surface or not at all when you rely on sync.
+
+> macOS note: the app runs **unsandboxed** (see `macos/Runner/*.entitlements`) so it can read/write
+> `~/SoleLedger`. That's appropriate for a personal, non-App-Store build; a sandboxed app would only
+> see a private container path.
+
 ## Run
 
 ```bash
 flutter pub get
 dart run build_runner build      # regenerate Drift/l10n if schema or ARB changed
-flutter run -d chrome            # or: flutter run -d <android-device>
+flutter run -d chrome            # web; or: flutter run -d <android-device>
+flutter run -d macos             # desktop (source-of-truth device for Syncthing)
 flutter test
+```
+
+First macOS build only: Flutter runs `xcodebuild -runFirstLaunch`, which needs an admin password. If
+a build hangs with no output, complete Xcode's setup once, interactively:
+
+```bash
+sudo xcodebuild -license accept
+sudo xcodebuild -runFirstLaunch
 ```

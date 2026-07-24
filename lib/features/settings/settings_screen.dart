@@ -1,10 +1,12 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money/currency.dart';
 import '../../core/widgets/common.dart';
 import '../../data/db/database.dart';
+import '../../data/db/db_location.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
 import '../../l10n/app_localizations.dart';
@@ -19,6 +21,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _controllers = <String, TextEditingController>{};
   String _currency = 'EUR';
   bool _seeded = false;
+  late final Future<String?> _dbPath = currentDatabasePath();
 
   TextEditingController _c(String key) =>
       _controllers.putIfAbsent(key, () => TextEditingController());
@@ -215,7 +218,71 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 16),
+            SectionHeader(title: 'Data & sync'),
+            _dataSyncCard(context),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dataSyncCard(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: FutureBuilder<String?>(
+          future: _dbPath,
+          builder: (context, snap) {
+            final path = snap.data;
+            final theme = Theme.of(context);
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  const Icon(Icons.storage_outlined, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Database location',
+                      style: theme.textTheme.titleSmall),
+                ]),
+                const SizedBox(height: 8),
+                if (path != null) ...[
+                  SelectableText(path,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(fontFamily: 'monospace')),
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: path));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Path copied')),
+                        );
+                      },
+                      icon: const Icon(Icons.copy, size: 16),
+                      label: const Text('Copy path'),
+                    ),
+                  ]),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Point Syncthing at this folder to keep your ledger in sync '
+                    'across devices. Edit on one device at a time and let sync '
+                    'settle before switching — SQLite files can\'t be merged.',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                ] else
+                  Text(
+                    'This build stores data in its own private storage '
+                    '(browser storage on web, app storage on mobile), which a '
+                    'file syncer can\'t reach. Use the desktop app for '
+                    'Syncthing-based sync.',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );

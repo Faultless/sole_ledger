@@ -2,7 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Sandbox disabled on purpose: this is a personal, non-App-Store build
+	     whose database lives in a fixed home-directory folder (~/SoleLedger)
+	     so Syncthing can sync it. A sandboxed app would only see a private
+	     container path, defeating that. -->
 	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<false/>
 </dict>
 </plist>
