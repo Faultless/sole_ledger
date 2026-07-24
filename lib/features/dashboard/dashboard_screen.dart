@@ -7,6 +7,7 @@ import '../../core/money/money.dart';
 import '../../core/widgets/common.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
+import '../../domain/tax/depreciation.dart';
 import '../../domain/tax/expense_categories.dart';
 import '../../domain/tax/tax_provision.dart';
 import '../../l10n/app_localizations.dart';
@@ -142,6 +143,7 @@ class _TaxSetAsideCard extends ConsumerWidget {
     final profile = ref.watch(businessProfileProvider).value;
     final invoices = ref.watch(invoicesProvider).value ?? const [];
     final expenses = ref.watch(expensesProvider).value ?? const [];
+    final assets = ref.watch(assetsProvider).value ?? const [];
     final fmt = ref.watch(formattersProvider);
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
@@ -169,6 +171,20 @@ class _TaxSetAsideCard extends ConsumerWidget {
       if (ded == 0) continue;
       final c = Currency.fromCode(e.currency);
       spend.update(c, (v) => v + ded, ifAbsent: () => ded);
+    }
+    // This year's depreciation from the fixed-asset register.
+    for (final a in assets) {
+      final dep = Depreciation.deductibleForYear(
+        costMinor: a.costMinor,
+        acquisition: a.acquisitionDate,
+        method: DepreciationMethod.fromName(a.method),
+        usefulLifeYears: a.usefulLifeYears,
+        businessUsePercent: a.businessUsePercent,
+        year: year,
+      );
+      if (dep == 0) continue;
+      final c = Currency.fromCode(a.currency);
+      spend.update(c, (v) => v + dep, ifAbsent: () => dep);
     }
 
     // Convert (revenue − expenses) to whole yen for the estimate.

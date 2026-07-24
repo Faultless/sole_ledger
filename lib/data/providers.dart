@@ -66,6 +66,10 @@ final expensesProvider = StreamProvider<List<Expense>>(
   (ref) => ref.watch(repositoryProvider).watchExpenses(),
 );
 
+final assetsProvider = StreamProvider<List<Asset>>(
+  (ref) => ref.watch(repositoryProvider).watchAssets(),
+);
+
 final invoiceProvider = StreamProvider.family<Invoice?, String>(
   (ref, id) => ref.watch(repositoryProvider).watchInvoice(id),
 );

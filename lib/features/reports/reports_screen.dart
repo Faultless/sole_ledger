@@ -5,6 +5,7 @@ import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
+import '../../domain/tax/depreciation.dart';
 import '../../domain/tax/expense_categories.dart';
 import '../../domain/tax/period_report.dart';
 import '../../domain/tax/vat_treatment.dart';
@@ -130,6 +131,20 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           if (ded == 0) continue;
           final currency = Currency.fromCode(e.currency);
           expenses.update(currency, (v) => v + ded, ifAbsent: () => ded);
+        }
+        // Include this year's depreciation from the fixed-asset register.
+        for (final a in await repo.allAssetsOnce()) {
+          final dep = Depreciation.deductibleForYear(
+            costMinor: a.costMinor,
+            acquisition: a.acquisitionDate,
+            method: DepreciationMethod.fromName(a.method),
+            usefulLifeYears: a.usefulLifeYears,
+            businessUsePercent: a.businessUsePercent,
+            year: _year,
+          );
+          if (dep == 0) continue;
+          final currency = Currency.fromCode(a.currency);
+          expenses.update(currency, (v) => v + dep, ifAbsent: () => dep);
         }
         await ReportPdf.shareAnnualIncome(
           profile: profile,

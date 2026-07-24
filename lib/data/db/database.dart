@@ -165,6 +165,24 @@ class InvoiceLines extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Fixed assets (固定資産) whose cost is deducted over time via depreciation
+/// (減価償却), rather than expensed at once. See domain/tax/depreciation.dart.
+class Assets extends Table {
+  TextColumn get id => text()();
+  TextColumn get description => text().withDefault(const Constant(''))();
+  DateTimeColumn get acquisitionDate => dateTime()();
+  IntColumn get costMinor => integer()();
+  TextColumn get currency => text().withDefault(const Constant('JPY'))();
+  /// 'fullExpense' (少額特例), 'lumpThreeYear' (一括償却), 'straightLine' (定額法).
+  TextColumn get method => text().withDefault(const Constant('straightLine'))();
+  IntColumn get usefulLifeYears => integer().withDefault(const Constant(4))();
+  IntColumn get businessUsePercent =>
+      integer().withDefault(const Constant(100))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     BusinessProfiles,
@@ -174,6 +192,7 @@ class InvoiceLines extends Table {
     Expenses,
     Invoices,
     InvoiceLines,
+    Assets,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -195,7 +214,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -209,6 +228,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 4) {
             await m.addColumn(businessProfiles, businessProfiles.eurToJpyRate);
+          }
+          if (from < 5) {
+            await m.createTable(assets);
           }
         },
         beforeOpen: (details) async {
@@ -237,8 +259,21 @@ class AppDatabase extends _$AppDatabase {
             column: 'eur_to_jpy_rate',
             definition: 'REAL NOT NULL DEFAULT 160',
           );
+          await _ensureTable('assets', assets);
         },
       );
+
+  /// Creates [table] if it does not exist (same self-heal rationale as
+  /// [_ensureColumn], for a whole added table).
+  Future<void> _ensureTable(String name, TableInfo table) async {
+    final rows = await customSelect(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+      variables: [Variable<String>(name)],
+    ).get();
+    if (rows.isEmpty) {
+      await createMigrator().createTable(table);
+    }
+  }
 
   /// Adds [column] to [table] if it does not already exist. Safe to call on
   /// every open.

@@ -107,6 +107,23 @@ class AppRepository {
   Future<void> deleteExpense(String id) =>
       (db.delete(db.expenses)..where((t) => t.id.equals(id))).go();
 
+  // --- Fixed assets (depreciation) -----------------------------------------
+
+  Stream<List<Asset>> watchAssets() => (db.select(db.assets)
+        ..orderBy([
+          (t) => OrderingTerm(
+              expression: t.acquisitionDate, mode: OrderingMode.desc),
+        ]))
+      .watch();
+
+  Future<List<Asset>> allAssetsOnce() => db.select(db.assets).get();
+
+  Future<void> upsertAsset(AssetsCompanion companion) =>
+      db.into(db.assets).insertOnConflictUpdate(companion);
+
+  Future<void> deleteAsset(String id) =>
+      (db.delete(db.assets)..where((t) => t.id.equals(id))).go();
+
   // --- Time entries --------------------------------------------------------
 
   Stream<List<TimeEntry>> watchTimeEntries({DateTime? from, DateTime? to}) {

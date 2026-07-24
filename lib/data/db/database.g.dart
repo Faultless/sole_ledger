@@ -5336,6 +5336,528 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
   }
 }
 
+class $AssetsTable extends Assets with TableInfo<$AssetsTable, Asset> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AssetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _descriptionMeta = const VerificationMeta(
+    'description',
+  );
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+    'description',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _acquisitionDateMeta = const VerificationMeta(
+    'acquisitionDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> acquisitionDate =
+      GeneratedColumn<DateTime>(
+        'acquisition_date',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _costMinorMeta = const VerificationMeta(
+    'costMinor',
+  );
+  @override
+  late final GeneratedColumn<int> costMinor = GeneratedColumn<int>(
+    'cost_minor',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyMeta = const VerificationMeta(
+    'currency',
+  );
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+    'currency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('JPY'),
+  );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('straightLine'),
+  );
+  static const VerificationMeta _usefulLifeYearsMeta = const VerificationMeta(
+    'usefulLifeYears',
+  );
+  @override
+  late final GeneratedColumn<int> usefulLifeYears = GeneratedColumn<int>(
+    'useful_life_years',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(4),
+  );
+  static const VerificationMeta _businessUsePercentMeta =
+      const VerificationMeta('businessUsePercent');
+  @override
+  late final GeneratedColumn<int> businessUsePercent = GeneratedColumn<int>(
+    'business_use_percent',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(100),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    description,
+    acquisitionDate,
+    costMinor,
+    currency,
+    method,
+    usefulLifeYears,
+    businessUsePercent,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'assets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Asset> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+        _descriptionMeta,
+        description.isAcceptableOrUnknown(
+          data['description']!,
+          _descriptionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('acquisition_date')) {
+      context.handle(
+        _acquisitionDateMeta,
+        acquisitionDate.isAcceptableOrUnknown(
+          data['acquisition_date']!,
+          _acquisitionDateMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_acquisitionDateMeta);
+    }
+    if (data.containsKey('cost_minor')) {
+      context.handle(
+        _costMinorMeta,
+        costMinor.isAcceptableOrUnknown(data['cost_minor']!, _costMinorMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_costMinorMeta);
+    }
+    if (data.containsKey('currency')) {
+      context.handle(
+        _currencyMeta,
+        currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta),
+      );
+    }
+    if (data.containsKey('method')) {
+      context.handle(
+        _methodMeta,
+        method.isAcceptableOrUnknown(data['method']!, _methodMeta),
+      );
+    }
+    if (data.containsKey('useful_life_years')) {
+      context.handle(
+        _usefulLifeYearsMeta,
+        usefulLifeYears.isAcceptableOrUnknown(
+          data['useful_life_years']!,
+          _usefulLifeYearsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('business_use_percent')) {
+      context.handle(
+        _businessUsePercentMeta,
+        businessUsePercent.isAcceptableOrUnknown(
+          data['business_use_percent']!,
+          _businessUsePercentMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Asset map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Asset(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      description: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}description'],
+      )!,
+      acquisitionDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}acquisition_date'],
+      )!,
+      costMinor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cost_minor'],
+      )!,
+      currency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency'],
+      )!,
+      method: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}method'],
+      )!,
+      usefulLifeYears: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}useful_life_years'],
+      )!,
+      businessUsePercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}business_use_percent'],
+      )!,
+    );
+  }
+
+  @override
+  $AssetsTable createAlias(String alias) {
+    return $AssetsTable(attachedDatabase, alias);
+  }
+}
+
+class Asset extends DataClass implements Insertable<Asset> {
+  final String id;
+  final String description;
+  final DateTime acquisitionDate;
+  final int costMinor;
+  final String currency;
+
+  /// 'fullExpense' (少額特例), 'lumpThreeYear' (一括償却), 'straightLine' (定額法).
+  final String method;
+  final int usefulLifeYears;
+  final int businessUsePercent;
+  const Asset({
+    required this.id,
+    required this.description,
+    required this.acquisitionDate,
+    required this.costMinor,
+    required this.currency,
+    required this.method,
+    required this.usefulLifeYears,
+    required this.businessUsePercent,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['description'] = Variable<String>(description);
+    map['acquisition_date'] = Variable<DateTime>(acquisitionDate);
+    map['cost_minor'] = Variable<int>(costMinor);
+    map['currency'] = Variable<String>(currency);
+    map['method'] = Variable<String>(method);
+    map['useful_life_years'] = Variable<int>(usefulLifeYears);
+    map['business_use_percent'] = Variable<int>(businessUsePercent);
+    return map;
+  }
+
+  AssetsCompanion toCompanion(bool nullToAbsent) {
+    return AssetsCompanion(
+      id: Value(id),
+      description: Value(description),
+      acquisitionDate: Value(acquisitionDate),
+      costMinor: Value(costMinor),
+      currency: Value(currency),
+      method: Value(method),
+      usefulLifeYears: Value(usefulLifeYears),
+      businessUsePercent: Value(businessUsePercent),
+    );
+  }
+
+  factory Asset.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Asset(
+      id: serializer.fromJson<String>(json['id']),
+      description: serializer.fromJson<String>(json['description']),
+      acquisitionDate: serializer.fromJson<DateTime>(json['acquisitionDate']),
+      costMinor: serializer.fromJson<int>(json['costMinor']),
+      currency: serializer.fromJson<String>(json['currency']),
+      method: serializer.fromJson<String>(json['method']),
+      usefulLifeYears: serializer.fromJson<int>(json['usefulLifeYears']),
+      businessUsePercent: serializer.fromJson<int>(json['businessUsePercent']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'description': serializer.toJson<String>(description),
+      'acquisitionDate': serializer.toJson<DateTime>(acquisitionDate),
+      'costMinor': serializer.toJson<int>(costMinor),
+      'currency': serializer.toJson<String>(currency),
+      'method': serializer.toJson<String>(method),
+      'usefulLifeYears': serializer.toJson<int>(usefulLifeYears),
+      'businessUsePercent': serializer.toJson<int>(businessUsePercent),
+    };
+  }
+
+  Asset copyWith({
+    String? id,
+    String? description,
+    DateTime? acquisitionDate,
+    int? costMinor,
+    String? currency,
+    String? method,
+    int? usefulLifeYears,
+    int? businessUsePercent,
+  }) => Asset(
+    id: id ?? this.id,
+    description: description ?? this.description,
+    acquisitionDate: acquisitionDate ?? this.acquisitionDate,
+    costMinor: costMinor ?? this.costMinor,
+    currency: currency ?? this.currency,
+    method: method ?? this.method,
+    usefulLifeYears: usefulLifeYears ?? this.usefulLifeYears,
+    businessUsePercent: businessUsePercent ?? this.businessUsePercent,
+  );
+  Asset copyWithCompanion(AssetsCompanion data) {
+    return Asset(
+      id: data.id.present ? data.id.value : this.id,
+      description: data.description.present
+          ? data.description.value
+          : this.description,
+      acquisitionDate: data.acquisitionDate.present
+          ? data.acquisitionDate.value
+          : this.acquisitionDate,
+      costMinor: data.costMinor.present ? data.costMinor.value : this.costMinor,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      method: data.method.present ? data.method.value : this.method,
+      usefulLifeYears: data.usefulLifeYears.present
+          ? data.usefulLifeYears.value
+          : this.usefulLifeYears,
+      businessUsePercent: data.businessUsePercent.present
+          ? data.businessUsePercent.value
+          : this.businessUsePercent,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Asset(')
+          ..write('id: $id, ')
+          ..write('description: $description, ')
+          ..write('acquisitionDate: $acquisitionDate, ')
+          ..write('costMinor: $costMinor, ')
+          ..write('currency: $currency, ')
+          ..write('method: $method, ')
+          ..write('usefulLifeYears: $usefulLifeYears, ')
+          ..write('businessUsePercent: $businessUsePercent')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    description,
+    acquisitionDate,
+    costMinor,
+    currency,
+    method,
+    usefulLifeYears,
+    businessUsePercent,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Asset &&
+          other.id == this.id &&
+          other.description == this.description &&
+          other.acquisitionDate == this.acquisitionDate &&
+          other.costMinor == this.costMinor &&
+          other.currency == this.currency &&
+          other.method == this.method &&
+          other.usefulLifeYears == this.usefulLifeYears &&
+          other.businessUsePercent == this.businessUsePercent);
+}
+
+class AssetsCompanion extends UpdateCompanion<Asset> {
+  final Value<String> id;
+  final Value<String> description;
+  final Value<DateTime> acquisitionDate;
+  final Value<int> costMinor;
+  final Value<String> currency;
+  final Value<String> method;
+  final Value<int> usefulLifeYears;
+  final Value<int> businessUsePercent;
+  final Value<int> rowid;
+  const AssetsCompanion({
+    this.id = const Value.absent(),
+    this.description = const Value.absent(),
+    this.acquisitionDate = const Value.absent(),
+    this.costMinor = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.method = const Value.absent(),
+    this.usefulLifeYears = const Value.absent(),
+    this.businessUsePercent = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AssetsCompanion.insert({
+    required String id,
+    this.description = const Value.absent(),
+    required DateTime acquisitionDate,
+    required int costMinor,
+    this.currency = const Value.absent(),
+    this.method = const Value.absent(),
+    this.usefulLifeYears = const Value.absent(),
+    this.businessUsePercent = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       acquisitionDate = Value(acquisitionDate),
+       costMinor = Value(costMinor);
+  static Insertable<Asset> custom({
+    Expression<String>? id,
+    Expression<String>? description,
+    Expression<DateTime>? acquisitionDate,
+    Expression<int>? costMinor,
+    Expression<String>? currency,
+    Expression<String>? method,
+    Expression<int>? usefulLifeYears,
+    Expression<int>? businessUsePercent,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (description != null) 'description': description,
+      if (acquisitionDate != null) 'acquisition_date': acquisitionDate,
+      if (costMinor != null) 'cost_minor': costMinor,
+      if (currency != null) 'currency': currency,
+      if (method != null) 'method': method,
+      if (usefulLifeYears != null) 'useful_life_years': usefulLifeYears,
+      if (businessUsePercent != null)
+        'business_use_percent': businessUsePercent,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AssetsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? description,
+    Value<DateTime>? acquisitionDate,
+    Value<int>? costMinor,
+    Value<String>? currency,
+    Value<String>? method,
+    Value<int>? usefulLifeYears,
+    Value<int>? businessUsePercent,
+    Value<int>? rowid,
+  }) {
+    return AssetsCompanion(
+      id: id ?? this.id,
+      description: description ?? this.description,
+      acquisitionDate: acquisitionDate ?? this.acquisitionDate,
+      costMinor: costMinor ?? this.costMinor,
+      currency: currency ?? this.currency,
+      method: method ?? this.method,
+      usefulLifeYears: usefulLifeYears ?? this.usefulLifeYears,
+      businessUsePercent: businessUsePercent ?? this.businessUsePercent,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (acquisitionDate.present) {
+      map['acquisition_date'] = Variable<DateTime>(acquisitionDate.value);
+    }
+    if (costMinor.present) {
+      map['cost_minor'] = Variable<int>(costMinor.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (usefulLifeYears.present) {
+      map['useful_life_years'] = Variable<int>(usefulLifeYears.value);
+    }
+    if (businessUsePercent.present) {
+      map['business_use_percent'] = Variable<int>(businessUsePercent.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AssetsCompanion(')
+          ..write('id: $id, ')
+          ..write('description: $description, ')
+          ..write('acquisitionDate: $acquisitionDate, ')
+          ..write('costMinor: $costMinor, ')
+          ..write('currency: $currency, ')
+          ..write('method: $method, ')
+          ..write('usefulLifeYears: $usefulLifeYears, ')
+          ..write('businessUsePercent: $businessUsePercent, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5348,6 +5870,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TimeEntriesTable timeEntries = $TimeEntriesTable(this);
   late final $ExpensesTable expenses = $ExpensesTable(this);
   late final $InvoiceLinesTable invoiceLines = $InvoiceLinesTable(this);
+  late final $AssetsTable assets = $AssetsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5360,6 +5883,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     timeEntries,
     expenses,
     invoiceLines,
+    assets,
   ];
 }
 
@@ -9128,6 +9652,265 @@ typedef $$InvoiceLinesTableProcessedTableManager =
       InvoiceLine,
       PrefetchHooks Function({bool invoiceId})
     >;
+typedef $$AssetsTableCreateCompanionBuilder =
+    AssetsCompanion Function({
+      required String id,
+      Value<String> description,
+      required DateTime acquisitionDate,
+      required int costMinor,
+      Value<String> currency,
+      Value<String> method,
+      Value<int> usefulLifeYears,
+      Value<int> businessUsePercent,
+      Value<int> rowid,
+    });
+typedef $$AssetsTableUpdateCompanionBuilder =
+    AssetsCompanion Function({
+      Value<String> id,
+      Value<String> description,
+      Value<DateTime> acquisitionDate,
+      Value<int> costMinor,
+      Value<String> currency,
+      Value<String> method,
+      Value<int> usefulLifeYears,
+      Value<int> businessUsePercent,
+      Value<int> rowid,
+    });
+
+class $$AssetsTableFilterComposer
+    extends Composer<_$AppDatabase, $AssetsTable> {
+  $$AssetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get acquisitionDate => $composableBuilder(
+    column: $table.acquisitionDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get costMinor => $composableBuilder(
+    column: $table.costMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get usefulLifeYears => $composableBuilder(
+    column: $table.usefulLifeYears,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get businessUsePercent => $composableBuilder(
+    column: $table.businessUsePercent,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AssetsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AssetsTable> {
+  $$AssetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get acquisitionDate => $composableBuilder(
+    column: $table.acquisitionDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get costMinor => $composableBuilder(
+    column: $table.costMinor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+    column: $table.currency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get method => $composableBuilder(
+    column: $table.method,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get usefulLifeYears => $composableBuilder(
+    column: $table.usefulLifeYears,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get businessUsePercent => $composableBuilder(
+    column: $table.businessUsePercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AssetsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AssetsTable> {
+  $$AssetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+    column: $table.description,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get acquisitionDate => $composableBuilder(
+    column: $table.acquisitionDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get costMinor =>
+      $composableBuilder(column: $table.costMinor, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<int> get usefulLifeYears => $composableBuilder(
+    column: $table.usefulLifeYears,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get businessUsePercent => $composableBuilder(
+    column: $table.businessUsePercent,
+    builder: (column) => column,
+  );
+}
+
+class $$AssetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AssetsTable,
+          Asset,
+          $$AssetsTableFilterComposer,
+          $$AssetsTableOrderingComposer,
+          $$AssetsTableAnnotationComposer,
+          $$AssetsTableCreateCompanionBuilder,
+          $$AssetsTableUpdateCompanionBuilder,
+          (Asset, BaseReferences<_$AppDatabase, $AssetsTable, Asset>),
+          Asset,
+          PrefetchHooks Function()
+        > {
+  $$AssetsTableTableManager(_$AppDatabase db, $AssetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AssetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AssetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AssetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> description = const Value.absent(),
+                Value<DateTime> acquisitionDate = const Value.absent(),
+                Value<int> costMinor = const Value.absent(),
+                Value<String> currency = const Value.absent(),
+                Value<String> method = const Value.absent(),
+                Value<int> usefulLifeYears = const Value.absent(),
+                Value<int> businessUsePercent = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AssetsCompanion(
+                id: id,
+                description: description,
+                acquisitionDate: acquisitionDate,
+                costMinor: costMinor,
+                currency: currency,
+                method: method,
+                usefulLifeYears: usefulLifeYears,
+                businessUsePercent: businessUsePercent,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<String> description = const Value.absent(),
+                required DateTime acquisitionDate,
+                required int costMinor,
+                Value<String> currency = const Value.absent(),
+                Value<String> method = const Value.absent(),
+                Value<int> usefulLifeYears = const Value.absent(),
+                Value<int> businessUsePercent = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AssetsCompanion.insert(
+                id: id,
+                description: description,
+                acquisitionDate: acquisitionDate,
+                costMinor: costMinor,
+                currency: currency,
+                method: method,
+                usefulLifeYears: usefulLifeYears,
+                businessUsePercent: businessUsePercent,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AssetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AssetsTable,
+      Asset,
+      $$AssetsTableFilterComposer,
+      $$AssetsTableOrderingComposer,
+      $$AssetsTableAnnotationComposer,
+      $$AssetsTableCreateCompanionBuilder,
+      $$AssetsTableUpdateCompanionBuilder,
+      (Asset, BaseReferences<_$AppDatabase, $AssetsTable, Asset>),
+      Asset,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9146,4 +9929,6 @@ class $AppDatabaseManager {
       $$ExpensesTableTableManager(_db, _db.expenses);
   $$InvoiceLinesTableTableManager get invoiceLines =>
       $$InvoiceLinesTableTableManager(_db, _db.invoiceLines);
+  $$AssetsTableTableManager get assets =>
+      $$AssetsTableTableManager(_db, _db.assets);
 }

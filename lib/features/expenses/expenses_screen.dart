@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/money/currency.dart';
@@ -47,6 +48,13 @@ class ExpensesScreen extends ConsumerWidget {
       appBar: AppBar(
         leading: navLeading(context),
         title: Text(l10n.navExpenses),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.inventory_2_outlined),
+            tooltip: 'Fixed assets',
+            onPressed: () => context.go('/assets'),
+          ),
+        ],
         bottom: ytd.isEmpty
             ? null
             : PreferredSize(
@@ -417,6 +425,12 @@ class _ExpenseEditorState extends ConsumerState<_ExpenseEditor> {
     final fmt = ref.watch(formattersProvider);
     final cat = expenseCategoryByCode(_category);
     final bottom = MediaQuery.viewInsetsOf(context).bottom;
+    // Nudge toward the asset register when the amount looks like a capital
+    // purchase (≥ ¥100,000 equivalent), which should usually be depreciated.
+    final fx = ref.watch(businessProfileProvider).value?.eurToJpyRate ?? 160;
+    final amountYen =
+        _cur == Currency.jpy ? _amountMoney.asMajor : _amountMoney.asMajor * fx;
+    final looksLikeAsset = widget.expense == null && amountYen >= 100000;
     final deductible = Money(
       deductibleMinorOf(
         deductible: _deductible,
@@ -545,6 +559,51 @@ class _ExpenseEditorState extends ConsumerState<_ExpenseEditor> {
                 ),
               ),
             ]),
+            if (looksLikeAsset) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.tertiaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      Icon(Icons.info_outline,
+                          size: 18,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onTertiaryContainer),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'This looks like a fixed asset (≥ ¥100,000). Such items '
+                          'are usually depreciated over their useful life, not '
+                          'deducted all at once.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onTertiaryContainer),
+                        ),
+                      ),
+                    ]),
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: TextButton.icon(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          context.go('/assets');
+                        },
+                        icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                        label: const Text('Add as asset instead'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             // Home-use apportionment (家事按分)
             Row(children: [

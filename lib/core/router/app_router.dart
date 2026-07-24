@@ -2,6 +2,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/clients/client_detail_screen.dart';
 import '../../features/clients/clients_screen.dart';
+import '../../features/assets/assets_screen.dart';
 import '../../features/dashboard/dashboard_screen.dart';
 import '../../features/expenses/expenses_screen.dart';
 import '../../features/invoices/invoice_detail_screen.dart';
@@ -58,6 +59,10 @@ final appRouter = GoRouter(
         GoRoute(
           path: '/expenses',
           pageBuilder: (c, s) => const NoTransitionPage(child: ExpensesScreen()),
+        ),
+        GoRoute(
+          path: '/assets',
+          pageBuilder: (c, s) => const NoTransitionPage(child: AssetsScreen()),
         ),
         GoRoute(
           path: '/settings',
