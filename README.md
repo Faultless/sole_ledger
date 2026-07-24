@@ -98,18 +98,26 @@ Where the database lives depends on the platform:
 | Platform | Location |
 |----------|----------|
 | **Desktop** (macOS/Linux/Windows) | `~/SoleLedger/sole_ledger.sqlite` (override with `$SOLE_LEDGER_DIR`) |
-| **Mobile** (Android/iOS) | app documents directory (drift default) |
+| **Android** | `/sdcard/SoleLedger/sole_ledger.sqlite` once sync is enabled, else private app storage |
+| **iOS** | app documents directory (drift default) |
 | **Web** | browser OPFS (sandboxed — not reachable by a file syncer) |
 
 The desktop path is deliberately a **fixed, user-visible folder** so you can point **Syncthing**
 (or any file syncer) at `~/SoleLedger` and keep the ledger in sync across devices. Settings →
 *Data & sync* shows the exact path with a copy button.
 
+**Android** starts in private storage (no permissions needed). To join the sync, open Settings →
+*Data & sync* → **Enable sync folder**: this requests **"All files access"** (`MANAGE_EXTERNAL_STORAGE`),
+copies the ledger into a shared `/sdcard/SoleLedger` folder, and — after you restart the app — runs
+from there so Syncthing can reach it. That permission is broad; it's appropriate for this personal,
+sideloaded build and is only requested if you opt in. iOS has no equivalent shared location and stays
+on private storage.
+
 **Sync discipline:** SQLite database files cannot be merged. Edit on **one device at a time** and let
 Syncthing settle before switching, or you'll get conflict copies. The recommended topology is the
-**laptop desktop app as source of truth**, syncing the single `.sqlite` file to other native devices.
-The web build can't participate (its OPFS store is sandboxed) — use it as a read-only/quick-look
-surface or not at all when you rely on sync.
+**laptop desktop app as source of truth**, syncing the single `.sqlite` file to your phone. The web
+build can't participate (its OPFS store is sandboxed) — use it as a read-only/quick-look surface or
+not at all when you rely on sync.
 
 > macOS note: the app runs **unsandboxed** (see `macos/Runner/*.entitlements`) so it can read/write
 > `~/SoleLedger`. That's appropriate for a personal, non-App-Store build; a sandboxed app would only

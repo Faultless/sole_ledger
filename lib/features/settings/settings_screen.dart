@@ -21,7 +21,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _controllers = <String, TextEditingController>{};
   String _currency = 'EUR';
   bool _seeded = false;
-  late final Future<String?> _dbPath = currentDatabasePath();
+  Future<String?> _dbPath = currentDatabasePath();
+  bool _justEnabledSync = false;
 
   TextEditingController _c(String key) =>
       _controllers.putIfAbsent(key, () => TextEditingController());
@@ -227,6 +228,40 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
+  Future<void> _enableSync() async {
+    final granted = await enableExternalSync();
+    if (!mounted) return;
+    if (granted) {
+      setState(() {
+        _dbPath = currentDatabasePath();
+        _justEnabledSync = true;
+      });
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Sync folder enabled'),
+          content: const Text(
+            'Your ledger has been copied to the shared SoleLedger folder. '
+            'Fully close and reopen the app so it loads from there, then point '
+            'Syncthing at that folder.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('"All files access" was not granted — sync not enabled'),
+        ),
+      );
+    }
+  }
+
   Widget _dataSyncCard(BuildContext context) {
     return Card(
       child: Padding(
@@ -264,6 +299,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ),
                   ]),
                   const SizedBox(height: 8),
+                  if (_justEnabledSync)
+                    Text(
+                      'Restart the app to start using this folder.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600),
+                    ),
                   Text(
                     'Point Syncthing at this folder to keep your ledger in sync '
                     'across devices. Edit on one device at a time and let sync '
@@ -271,15 +313,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
-                ] else
+                ] else ...[
                   Text(
                     'This build stores data in its own private storage '
                     '(browser storage on web, app storage on mobile), which a '
-                    'file syncer can\'t reach. Use the desktop app for '
-                    'Syncthing-based sync.',
+                    'file syncer can\'t reach.',
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
+                  if (canEnableExternalSync) ...[
+                    const SizedBox(height: 12),
+                    FilledButton.tonalIcon(
+                      onPressed: _enableSync,
+                      icon: const Icon(Icons.sync, size: 18),
+                      label: const Text('Enable sync folder'),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Grants "All files access" and copies the ledger to a '
+                      'shared SoleLedger folder Syncthing can read. Restart the '
+                      'app afterwards.',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ],
               ],
             );
           },

@@ -1,7 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Optional "All files access" (Android 11+): only requested if the user
+         turns on the Syncthing sync folder in Settings. Lets the DB live in a
+         shared folder (/sdcard/SoleLedger) that Syncthing can read. Appropriate
+         for this personal, sideloaded build; not intended for Play Store
+         distribution. (Legacy WRITE_EXTERNAL_STORAGE for older Android is
+         already contributed by the file_saver plugin.) -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <application
         android:label="sole_ledger"
         android:name="${applicationName}"
+        android:requestLegacyExternalStorage="true"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

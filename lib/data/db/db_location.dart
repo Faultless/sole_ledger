@@ -14,5 +14,14 @@ import 'db_location_stub.dart' if (dart.library.io) 'db_location_io.dart' as imp
 Future<String> Function()? fixedDatabasePath() => impl.fixedDatabasePath();
 
 /// The resolved database file path, for display in Settings. Null on platforms
-/// that use the drift default (mobile) or OPFS (web).
+/// that use the drift default (iOS, Android before sync is enabled) or OPFS (web).
 Future<String?> currentDatabasePath() => impl.currentDatabasePath();
+
+/// Whether this platform offers a Settings action to move the database into a
+/// shared, syncer-reachable folder (Android only; desktop is already external).
+bool get canEnableExternalSync => impl.canEnableExternalSync;
+
+/// Android: request "All files access" and copy the current database into the
+/// shared `/sdcard/SoleLedger` folder so Syncthing can reach it. Returns true if
+/// granted; the app must then be restarted. No-op (false) elsewhere.
+Future<bool> enableExternalSync() => impl.enableExternalSync();
