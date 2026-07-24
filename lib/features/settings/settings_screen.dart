@@ -48,6 +48,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _c('rate').text = p.defaultHourlyRate == 0
         ? ''
         : p.defaultHourlyRate.toString();
+    _c('fxRate').text = p.eurToJpyRate.toStringAsFixed(0);
     _currency = p.defaultCurrency;
     _seeded = true;
   }
@@ -84,6 +85,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       defaultCurrency: Value(_currency),
       defaultHourlyRate:
           Value(double.tryParse(_c('rate').text.trim()) ?? 0),
+      eurToJpyRate: Value(
+          double.tryParse(_c('fxRate').text.replaceAll(',', '.').trim()) ?? 160),
     ));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -196,6 +199,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                           child: _field('rate', 'Default hourly rate',
                               number: true)),
                     ]),
+                    const SizedBox(height: 4),
+                    _field('fxRate', 'EUR → JPY rate (for tax estimates)',
+                        number: true),
                   ],
                 ),
               ),

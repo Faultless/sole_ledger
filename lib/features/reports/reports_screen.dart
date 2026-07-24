@@ -29,6 +29,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   void initState() {
     super.initState();
     _lang = ref.read(appLanguageProvider).code;
+    final storedFx = ref.read(businessProfileProvider).value?.eurToJpyRate;
+    if (storedFx != null) _fxCtrl.text = storedFx.toStringAsFixed(0);
   }
 
   @override

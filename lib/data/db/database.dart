@@ -42,6 +42,10 @@ class BusinessProfiles extends Table {
   TextColumn get signaturePath => text().nullable()();
   RealColumn get defaultHourlyRate =>
       real().withDefault(const Constant(0))(); // major units of defaultCurrency
+  /// EUR→JPY rate used to convert profit for the Japanese income-tax estimate
+  /// (dashboard set-aside + annual report). A planning figure, edited in Settings.
+  RealColumn get eurToJpyRate =>
+      real().withDefault(const Constant(160))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -191,7 +195,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -202,6 +206,9 @@ class AppDatabase extends _$AppDatabase {
           if (from < 3) {
             await m.addColumn(expenses, expenses.receiptImage);
             await m.addColumn(expenses, expenses.receiptMime);
+          }
+          if (from < 4) {
+            await m.addColumn(businessProfiles, businessProfiles.eurToJpyRate);
           }
         },
         beforeOpen: (details) async {
@@ -224,6 +231,11 @@ class AppDatabase extends _$AppDatabase {
             table: 'expenses',
             column: 'receipt_mime',
             definition: 'TEXT',
+          );
+          await _ensureColumn(
+            table: 'business_profiles',
+            column: 'eur_to_jpy_rate',
+            definition: 'REAL NOT NULL DEFAULT 160',
           );
         },
       );

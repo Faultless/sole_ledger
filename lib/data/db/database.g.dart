@@ -269,6 +269,18 @@ class $BusinessProfilesTable extends BusinessProfiles
         requiredDuringInsert: false,
         defaultValue: const Constant(0),
       );
+  static const VerificationMeta _eurToJpyRateMeta = const VerificationMeta(
+    'eurToJpyRate',
+  );
+  @override
+  late final GeneratedColumn<double> eurToJpyRate = GeneratedColumn<double>(
+    'eur_to_jpy_rate',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(160),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -294,6 +306,7 @@ class $BusinessProfilesTable extends BusinessProfiles
     logoPath,
     signaturePath,
     defaultHourlyRate,
+    eurToJpyRate,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -471,6 +484,15 @@ class $BusinessProfilesTable extends BusinessProfiles
         ),
       );
     }
+    if (data.containsKey('eur_to_jpy_rate')) {
+      context.handle(
+        _eurToJpyRateMeta,
+        eurToJpyRate.isAcceptableOrUnknown(
+          data['eur_to_jpy_rate']!,
+          _eurToJpyRateMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -572,6 +594,10 @@ class $BusinessProfilesTable extends BusinessProfiles
         DriftSqlType.double,
         data['${effectivePrefix}default_hourly_rate'],
       )!,
+      eurToJpyRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}eur_to_jpy_rate'],
+      )!,
     );
   }
 
@@ -605,6 +631,10 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
   final String? logoPath;
   final String? signaturePath;
   final double defaultHourlyRate;
+
+  /// EUR→JPY rate used to convert profit for the Japanese income-tax estimate
+  /// (dashboard set-aside + annual report). A planning figure, edited in Settings.
+  final double eurToJpyRate;
   const BusinessProfile({
     required this.id,
     required this.legalName,
@@ -629,6 +659,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     this.logoPath,
     this.signaturePath,
     required this.defaultHourlyRate,
+    required this.eurToJpyRate,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -660,6 +691,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       map['signature_path'] = Variable<String>(signaturePath);
     }
     map['default_hourly_rate'] = Variable<double>(defaultHourlyRate);
+    map['eur_to_jpy_rate'] = Variable<double>(eurToJpyRate);
     return map;
   }
 
@@ -692,6 +724,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           ? const Value.absent()
           : Value(signaturePath),
       defaultHourlyRate: Value(defaultHourlyRate),
+      eurToJpyRate: Value(eurToJpyRate),
     );
   }
 
@@ -726,6 +759,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       logoPath: serializer.fromJson<String?>(json['logoPath']),
       signaturePath: serializer.fromJson<String?>(json['signaturePath']),
       defaultHourlyRate: serializer.fromJson<double>(json['defaultHourlyRate']),
+      eurToJpyRate: serializer.fromJson<double>(json['eurToJpyRate']),
     );
   }
   @override
@@ -755,6 +789,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       'logoPath': serializer.toJson<String?>(logoPath),
       'signaturePath': serializer.toJson<String?>(signaturePath),
       'defaultHourlyRate': serializer.toJson<double>(defaultHourlyRate),
+      'eurToJpyRate': serializer.toJson<double>(eurToJpyRate),
     };
   }
 
@@ -782,6 +817,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     Value<String?> logoPath = const Value.absent(),
     Value<String?> signaturePath = const Value.absent(),
     double? defaultHourlyRate,
+    double? eurToJpyRate,
   }) => BusinessProfile(
     id: id ?? this.id,
     legalName: legalName ?? this.legalName,
@@ -808,6 +844,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
         ? signaturePath.value
         : this.signaturePath,
     defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
+    eurToJpyRate: eurToJpyRate ?? this.eurToJpyRate,
   );
   BusinessProfile copyWithCompanion(BusinessProfilesCompanion data) {
     return BusinessProfile(
@@ -854,6 +891,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       defaultHourlyRate: data.defaultHourlyRate.present
           ? data.defaultHourlyRate.value
           : this.defaultHourlyRate,
+      eurToJpyRate: data.eurToJpyRate.present
+          ? data.eurToJpyRate.value
+          : this.eurToJpyRate,
     );
   }
 
@@ -882,7 +922,8 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           ..write('nextInvoiceSeq: $nextInvoiceSeq, ')
           ..write('logoPath: $logoPath, ')
           ..write('signaturePath: $signaturePath, ')
-          ..write('defaultHourlyRate: $defaultHourlyRate')
+          ..write('defaultHourlyRate: $defaultHourlyRate, ')
+          ..write('eurToJpyRate: $eurToJpyRate')
           ..write(')'))
         .toString();
   }
@@ -912,6 +953,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     logoPath,
     signaturePath,
     defaultHourlyRate,
+    eurToJpyRate,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -939,7 +981,8 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           other.nextInvoiceSeq == this.nextInvoiceSeq &&
           other.logoPath == this.logoPath &&
           other.signaturePath == this.signaturePath &&
-          other.defaultHourlyRate == this.defaultHourlyRate);
+          other.defaultHourlyRate == this.defaultHourlyRate &&
+          other.eurToJpyRate == this.eurToJpyRate);
 }
 
 class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
@@ -966,6 +1009,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
   final Value<String?> logoPath;
   final Value<String?> signaturePath;
   final Value<double> defaultHourlyRate;
+  final Value<double> eurToJpyRate;
   final Value<int> rowid;
   const BusinessProfilesCompanion({
     this.id = const Value.absent(),
@@ -991,6 +1035,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     this.logoPath = const Value.absent(),
     this.signaturePath = const Value.absent(),
     this.defaultHourlyRate = const Value.absent(),
+    this.eurToJpyRate = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   BusinessProfilesCompanion.insert({
@@ -1017,6 +1062,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     this.logoPath = const Value.absent(),
     this.signaturePath = const Value.absent(),
     this.defaultHourlyRate = const Value.absent(),
+    this.eurToJpyRate = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id);
   static Insertable<BusinessProfile> custom({
@@ -1043,6 +1089,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     Expression<String>? logoPath,
     Expression<String>? signaturePath,
     Expression<double>? defaultHourlyRate,
+    Expression<double>? eurToJpyRate,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1070,6 +1117,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
       if (logoPath != null) 'logo_path': logoPath,
       if (signaturePath != null) 'signature_path': signaturePath,
       if (defaultHourlyRate != null) 'default_hourly_rate': defaultHourlyRate,
+      if (eurToJpyRate != null) 'eur_to_jpy_rate': eurToJpyRate,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1098,6 +1146,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     Value<String?>? logoPath,
     Value<String?>? signaturePath,
     Value<double>? defaultHourlyRate,
+    Value<double>? eurToJpyRate,
     Value<int>? rowid,
   }) {
     return BusinessProfilesCompanion(
@@ -1124,6 +1173,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
       logoPath: logoPath ?? this.logoPath,
       signaturePath: signaturePath ?? this.signaturePath,
       defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
+      eurToJpyRate: eurToJpyRate ?? this.eurToJpyRate,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1202,6 +1252,9 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     if (defaultHourlyRate.present) {
       map['default_hourly_rate'] = Variable<double>(defaultHourlyRate.value);
     }
+    if (eurToJpyRate.present) {
+      map['eur_to_jpy_rate'] = Variable<double>(eurToJpyRate.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1234,6 +1287,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
           ..write('logoPath: $logoPath, ')
           ..write('signaturePath: $signaturePath, ')
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
+          ..write('eurToJpyRate: $eurToJpyRate, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5334,6 +5388,7 @@ typedef $$BusinessProfilesTableCreateCompanionBuilder =
       Value<String?> logoPath,
       Value<String?> signaturePath,
       Value<double> defaultHourlyRate,
+      Value<double> eurToJpyRate,
       Value<int> rowid,
     });
 typedef $$BusinessProfilesTableUpdateCompanionBuilder =
@@ -5361,6 +5416,7 @@ typedef $$BusinessProfilesTableUpdateCompanionBuilder =
       Value<String?> logoPath,
       Value<String?> signaturePath,
       Value<double> defaultHourlyRate,
+      Value<double> eurToJpyRate,
       Value<int> rowid,
     });
 
@@ -5485,6 +5541,11 @@ class $$BusinessProfilesTableFilterComposer
 
   ColumnFilters<double> get defaultHourlyRate => $composableBuilder(
     column: $table.defaultHourlyRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get eurToJpyRate => $composableBuilder(
+    column: $table.eurToJpyRate,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5612,6 +5673,11 @@ class $$BusinessProfilesTableOrderingComposer
     column: $table.defaultHourlyRate,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<double> get eurToJpyRate => $composableBuilder(
+    column: $table.eurToJpyRate,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BusinessProfilesTableAnnotationComposer
@@ -5711,6 +5777,11 @@ class $$BusinessProfilesTableAnnotationComposer
     column: $table.defaultHourlyRate,
     builder: (column) => column,
   );
+
+  GeneratedColumn<double> get eurToJpyRate => $composableBuilder(
+    column: $table.eurToJpyRate,
+    builder: (column) => column,
+  );
 }
 
 class $$BusinessProfilesTableTableManager
@@ -5773,6 +5844,7 @@ class $$BusinessProfilesTableTableManager
                 Value<String?> logoPath = const Value.absent(),
                 Value<String?> signaturePath = const Value.absent(),
                 Value<double> defaultHourlyRate = const Value.absent(),
+                Value<double> eurToJpyRate = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BusinessProfilesCompanion(
                 id: id,
@@ -5798,6 +5870,7 @@ class $$BusinessProfilesTableTableManager
                 logoPath: logoPath,
                 signaturePath: signaturePath,
                 defaultHourlyRate: defaultHourlyRate,
+                eurToJpyRate: eurToJpyRate,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5825,6 +5898,7 @@ class $$BusinessProfilesTableTableManager
                 Value<String?> logoPath = const Value.absent(),
                 Value<String?> signaturePath = const Value.absent(),
                 Value<double> defaultHourlyRate = const Value.absent(),
+                Value<double> eurToJpyRate = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BusinessProfilesCompanion.insert(
                 id: id,
@@ -5850,6 +5924,7 @@ class $$BusinessProfilesTableTableManager
                 logoPath: logoPath,
                 signaturePath: signaturePath,
                 defaultHourlyRate: defaultHourlyRate,
+                eurToJpyRate: eurToJpyRate,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
