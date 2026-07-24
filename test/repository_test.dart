@@ -89,29 +89,59 @@ void main() {
     expect(await repo.watchUnbilledMinutes().first, 120);
   });
 
-  test('beforeOpen self-heals a persisted DB missing a later column',
+  test('receipt image blob round-trips through an expense', () async {
+    final bytes = Uint8List.fromList(List<int>.generate(2048, (i) => i % 256));
+    await repo.upsertExpense(ExpensesCompanion(
+      id: Value(repo.newId()),
+      date: Value(DateTime(2026, 3, 14)),
+      amountMinor: const Value(600),
+      currency: const Value('EUR'),
+      receiptImage: Value(bytes),
+      receiptMime: const Value('image/jpeg'),
+    ));
+
+    final stored = (await repo.watchExpenses().first).single;
+    expect(stored.receiptImage, bytes);
+    expect(stored.receiptMime, 'image/jpeg');
+
+    // An expense without a receipt keeps the blob null.
+    await repo.upsertExpense(ExpensesCompanion(
+      id: Value(repo.newId()),
+      date: Value(DateTime(2026, 3, 15)),
+      amountMinor: const Value(300),
+      currency: const Value('EUR'),
+    ));
+    final withoutReceipt = (await repo.watchExpenses().first)
+        .firstWhere((e) => e.amountMinor == 300);
+    expect(withoutReceipt.receiptImage, null);
+  });
+
+  test('beforeOpen self-heals a persisted DB missing later columns',
       () async {
     final dir = await Directory.systemTemp.createTemp('sole_ledger_heal');
     final file = File(p.join(dir.path, 'db.sqlite'));
 
     // First open creates the current schema; then simulate a stale on-device
-    // database by dropping the column a later version added.
+    // database by dropping the columns later versions added.
     final db1 = AppDatabase(NativeDatabase(file));
     await db1.customSelect('SELECT 1').get(); // force open + create
     await db1.customStatement(
         'ALTER TABLE expenses DROP COLUMN business_use_percent');
+    await db1.customStatement('ALTER TABLE expenses DROP COLUMN receipt_image');
     await db1.close();
 
-    // Reopening must re-add the column in beforeOpen, so the write succeeds.
+    // Reopening must re-add the columns in beforeOpen, so the write succeeds.
     final db2 = AppDatabase(NativeDatabase(file));
     await db2.into(db2.expenses).insert(ExpensesCompanion.insert(
           id: 'e1',
           date: DateTime(2026, 7, 1),
           amountMinor: 11000,
           businessUsePercent: const Value(30),
+          receiptImage: Value(Uint8List.fromList([1, 2, 3])),
         ));
     final rows = await db2.select(db2.expenses).get();
     expect(rows.single.businessUsePercent, 30);
+    expect(rows.single.receiptImage, Uint8List.fromList([1, 2, 3]));
     await db2.close();
 
     await dir.delete(recursive: true);

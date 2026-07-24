@@ -4146,6 +4146,29 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _receiptImageMeta = const VerificationMeta(
+    'receiptImage',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> receiptImage =
+      GeneratedColumn<Uint8List>(
+        'receipt_image',
+        aliasedName,
+        true,
+        type: DriftSqlType.blob,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _receiptMimeMeta = const VerificationMeta(
+    'receiptMime',
+  );
+  @override
+  late final GeneratedColumn<String> receiptMime = GeneratedColumn<String>(
+    'receipt_mime',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4158,6 +4181,8 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
     deductible,
     businessUsePercent,
     receiptPath,
+    receiptImage,
+    receiptMime,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -4246,6 +4271,24 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         ),
       );
     }
+    if (data.containsKey('receipt_image')) {
+      context.handle(
+        _receiptImageMeta,
+        receiptImage.isAcceptableOrUnknown(
+          data['receipt_image']!,
+          _receiptImageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('receipt_mime')) {
+      context.handle(
+        _receiptMimeMeta,
+        receiptMime.isAcceptableOrUnknown(
+          data['receipt_mime']!,
+          _receiptMimeMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -4295,6 +4338,14 @@ class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
         DriftSqlType.string,
         data['${effectivePrefix}receipt_path'],
       ),
+      receiptImage: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}receipt_image'],
+      ),
+      receiptMime: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}receipt_mime'],
+      ),
     );
   }
 
@@ -4318,6 +4369,12 @@ class Expense extends DataClass implements Insertable<Expense> {
   /// 100 = fully business. Deductible amount = amountMinor * pct / 100.
   final int businessUsePercent;
   final String? receiptPath;
+
+  /// Attached receipt image bytes (compressed JPEG/PNG). Stored in-DB so the
+  /// whole ledger stays a single portable file and works identically on web
+  /// (OPFS) and Android — see receipt_image.dart for the capture/compress path.
+  final Uint8List? receiptImage;
+  final String? receiptMime;
   const Expense({
     required this.id,
     required this.date,
@@ -4329,6 +4386,8 @@ class Expense extends DataClass implements Insertable<Expense> {
     required this.deductible,
     required this.businessUsePercent,
     this.receiptPath,
+    this.receiptImage,
+    this.receiptMime,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -4344,6 +4403,12 @@ class Expense extends DataClass implements Insertable<Expense> {
     map['business_use_percent'] = Variable<int>(businessUsePercent);
     if (!nullToAbsent || receiptPath != null) {
       map['receipt_path'] = Variable<String>(receiptPath);
+    }
+    if (!nullToAbsent || receiptImage != null) {
+      map['receipt_image'] = Variable<Uint8List>(receiptImage);
+    }
+    if (!nullToAbsent || receiptMime != null) {
+      map['receipt_mime'] = Variable<String>(receiptMime);
     }
     return map;
   }
@@ -4362,6 +4427,12 @@ class Expense extends DataClass implements Insertable<Expense> {
       receiptPath: receiptPath == null && nullToAbsent
           ? const Value.absent()
           : Value(receiptPath),
+      receiptImage: receiptImage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(receiptImage),
+      receiptMime: receiptMime == null && nullToAbsent
+          ? const Value.absent()
+          : Value(receiptMime),
     );
   }
 
@@ -4381,6 +4452,8 @@ class Expense extends DataClass implements Insertable<Expense> {
       deductible: serializer.fromJson<bool>(json['deductible']),
       businessUsePercent: serializer.fromJson<int>(json['businessUsePercent']),
       receiptPath: serializer.fromJson<String?>(json['receiptPath']),
+      receiptImage: serializer.fromJson<Uint8List?>(json['receiptImage']),
+      receiptMime: serializer.fromJson<String?>(json['receiptMime']),
     );
   }
   @override
@@ -4397,6 +4470,8 @@ class Expense extends DataClass implements Insertable<Expense> {
       'deductible': serializer.toJson<bool>(deductible),
       'businessUsePercent': serializer.toJson<int>(businessUsePercent),
       'receiptPath': serializer.toJson<String?>(receiptPath),
+      'receiptImage': serializer.toJson<Uint8List?>(receiptImage),
+      'receiptMime': serializer.toJson<String?>(receiptMime),
     };
   }
 
@@ -4411,6 +4486,8 @@ class Expense extends DataClass implements Insertable<Expense> {
     bool? deductible,
     int? businessUsePercent,
     Value<String?> receiptPath = const Value.absent(),
+    Value<Uint8List?> receiptImage = const Value.absent(),
+    Value<String?> receiptMime = const Value.absent(),
   }) => Expense(
     id: id ?? this.id,
     date: date ?? this.date,
@@ -4422,6 +4499,8 @@ class Expense extends DataClass implements Insertable<Expense> {
     deductible: deductible ?? this.deductible,
     businessUsePercent: businessUsePercent ?? this.businessUsePercent,
     receiptPath: receiptPath.present ? receiptPath.value : this.receiptPath,
+    receiptImage: receiptImage.present ? receiptImage.value : this.receiptImage,
+    receiptMime: receiptMime.present ? receiptMime.value : this.receiptMime,
   );
   Expense copyWithCompanion(ExpensesCompanion data) {
     return Expense(
@@ -4445,6 +4524,12 @@ class Expense extends DataClass implements Insertable<Expense> {
       receiptPath: data.receiptPath.present
           ? data.receiptPath.value
           : this.receiptPath,
+      receiptImage: data.receiptImage.present
+          ? data.receiptImage.value
+          : this.receiptImage,
+      receiptMime: data.receiptMime.present
+          ? data.receiptMime.value
+          : this.receiptMime,
     );
   }
 
@@ -4460,7 +4545,9 @@ class Expense extends DataClass implements Insertable<Expense> {
           ..write('currency: $currency, ')
           ..write('deductible: $deductible, ')
           ..write('businessUsePercent: $businessUsePercent, ')
-          ..write('receiptPath: $receiptPath')
+          ..write('receiptPath: $receiptPath, ')
+          ..write('receiptImage: $receiptImage, ')
+          ..write('receiptMime: $receiptMime')
           ..write(')'))
         .toString();
   }
@@ -4477,6 +4564,8 @@ class Expense extends DataClass implements Insertable<Expense> {
     deductible,
     businessUsePercent,
     receiptPath,
+    $driftBlobEquality.hash(receiptImage),
+    receiptMime,
   );
   @override
   bool operator ==(Object other) =>
@@ -4491,7 +4580,9 @@ class Expense extends DataClass implements Insertable<Expense> {
           other.currency == this.currency &&
           other.deductible == this.deductible &&
           other.businessUsePercent == this.businessUsePercent &&
-          other.receiptPath == this.receiptPath);
+          other.receiptPath == this.receiptPath &&
+          $driftBlobEquality.equals(other.receiptImage, this.receiptImage) &&
+          other.receiptMime == this.receiptMime);
 }
 
 class ExpensesCompanion extends UpdateCompanion<Expense> {
@@ -4505,6 +4596,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   final Value<bool> deductible;
   final Value<int> businessUsePercent;
   final Value<String?> receiptPath;
+  final Value<Uint8List?> receiptImage;
+  final Value<String?> receiptMime;
   final Value<int> rowid;
   const ExpensesCompanion({
     this.id = const Value.absent(),
@@ -4517,6 +4610,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.deductible = const Value.absent(),
     this.businessUsePercent = const Value.absent(),
     this.receiptPath = const Value.absent(),
+    this.receiptImage = const Value.absent(),
+    this.receiptMime = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ExpensesCompanion.insert({
@@ -4530,6 +4625,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     this.deductible = const Value.absent(),
     this.businessUsePercent = const Value.absent(),
     this.receiptPath = const Value.absent(),
+    this.receiptImage = const Value.absent(),
+    this.receiptMime = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        date = Value(date),
@@ -4545,6 +4642,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Expression<bool>? deductible,
     Expression<int>? businessUsePercent,
     Expression<String>? receiptPath,
+    Expression<Uint8List>? receiptImage,
+    Expression<String>? receiptMime,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -4559,6 +4658,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       if (businessUsePercent != null)
         'business_use_percent': businessUsePercent,
       if (receiptPath != null) 'receipt_path': receiptPath,
+      if (receiptImage != null) 'receipt_image': receiptImage,
+      if (receiptMime != null) 'receipt_mime': receiptMime,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -4574,6 +4675,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     Value<bool>? deductible,
     Value<int>? businessUsePercent,
     Value<String?>? receiptPath,
+    Value<Uint8List?>? receiptImage,
+    Value<String?>? receiptMime,
     Value<int>? rowid,
   }) {
     return ExpensesCompanion(
@@ -4587,6 +4690,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
       deductible: deductible ?? this.deductible,
       businessUsePercent: businessUsePercent ?? this.businessUsePercent,
       receiptPath: receiptPath ?? this.receiptPath,
+      receiptImage: receiptImage ?? this.receiptImage,
+      receiptMime: receiptMime ?? this.receiptMime,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4624,6 +4729,12 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
     if (receiptPath.present) {
       map['receipt_path'] = Variable<String>(receiptPath.value);
     }
+    if (receiptImage.present) {
+      map['receipt_image'] = Variable<Uint8List>(receiptImage.value);
+    }
+    if (receiptMime.present) {
+      map['receipt_mime'] = Variable<String>(receiptMime.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4643,6 +4754,8 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
           ..write('deductible: $deductible, ')
           ..write('businessUsePercent: $businessUsePercent, ')
           ..write('receiptPath: $receiptPath, ')
+          ..write('receiptImage: $receiptImage, ')
+          ..write('receiptMime: $receiptMime, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -8231,6 +8344,8 @@ typedef $$ExpensesTableCreateCompanionBuilder =
       Value<bool> deductible,
       Value<int> businessUsePercent,
       Value<String?> receiptPath,
+      Value<Uint8List?> receiptImage,
+      Value<String?> receiptMime,
       Value<int> rowid,
     });
 typedef $$ExpensesTableUpdateCompanionBuilder =
@@ -8245,6 +8360,8 @@ typedef $$ExpensesTableUpdateCompanionBuilder =
       Value<bool> deductible,
       Value<int> businessUsePercent,
       Value<String?> receiptPath,
+      Value<Uint8List?> receiptImage,
+      Value<String?> receiptMime,
       Value<int> rowid,
     });
 
@@ -8304,6 +8421,16 @@ class $$ExpensesTableFilterComposer
 
   ColumnFilters<String> get receiptPath => $composableBuilder(
     column: $table.receiptPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get receiptImage => $composableBuilder(
+    column: $table.receiptImage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get receiptMime => $composableBuilder(
+    column: $table.receiptMime,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -8366,6 +8493,16 @@ class $$ExpensesTableOrderingComposer
     column: $table.receiptPath,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<Uint8List> get receiptImage => $composableBuilder(
+    column: $table.receiptImage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get receiptMime => $composableBuilder(
+    column: $table.receiptMime,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ExpensesTableAnnotationComposer
@@ -8416,6 +8553,16 @@ class $$ExpensesTableAnnotationComposer
     column: $table.receiptPath,
     builder: (column) => column,
   );
+
+  GeneratedColumn<Uint8List> get receiptImage => $composableBuilder(
+    column: $table.receiptImage,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get receiptMime => $composableBuilder(
+    column: $table.receiptMime,
+    builder: (column) => column,
+  );
 }
 
 class $$ExpensesTableTableManager
@@ -8456,6 +8603,8 @@ class $$ExpensesTableTableManager
                 Value<bool> deductible = const Value.absent(),
                 Value<int> businessUsePercent = const Value.absent(),
                 Value<String?> receiptPath = const Value.absent(),
+                Value<Uint8List?> receiptImage = const Value.absent(),
+                Value<String?> receiptMime = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ExpensesCompanion(
                 id: id,
@@ -8468,6 +8617,8 @@ class $$ExpensesTableTableManager
                 deductible: deductible,
                 businessUsePercent: businessUsePercent,
                 receiptPath: receiptPath,
+                receiptImage: receiptImage,
+                receiptMime: receiptMime,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -8482,6 +8633,8 @@ class $$ExpensesTableTableManager
                 Value<bool> deductible = const Value.absent(),
                 Value<int> businessUsePercent = const Value.absent(),
                 Value<String?> receiptPath = const Value.absent(),
+                Value<Uint8List?> receiptImage = const Value.absent(),
+                Value<String?> receiptMime = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ExpensesCompanion.insert(
                 id: id,
@@ -8494,6 +8647,8 @@ class $$ExpensesTableTableManager
                 deductible: deductible,
                 businessUsePercent: businessUsePercent,
                 receiptPath: receiptPath,
+                receiptImage: receiptImage,
+                receiptMime: receiptMime,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

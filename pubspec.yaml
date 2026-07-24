@@ -49,6 +49,9 @@ dependencies:
   collection: ^1.19.1
   flutter_localizations:
     sdk: flutter
+  image_picker: ^1.2.3
+  image: ^4.8.0
+  google_mlkit_text_recognition: ^0.16.0
 
 dev_dependencies:
   flutter_test:

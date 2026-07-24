@@ -113,6 +113,11 @@ class Expenses extends Table {
   IntColumn get businessUsePercent =>
       integer().withDefault(const Constant(100))();
   TextColumn get receiptPath => text().nullable()();
+  /// Attached receipt image bytes (compressed JPEG/PNG). Stored in-DB so the
+  /// whole ledger stays a single portable file and works identically on web
+  /// (OPFS) and Android — see receipt_image.dart for the capture/compress path.
+  BlobColumn get receiptImage => blob().nullable()();
+  TextColumn get receiptMime => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -181,13 +186,17 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (m, from, to) async {
           if (from < 2) {
             await m.addColumn(expenses, expenses.businessUsePercent);
+          }
+          if (from < 3) {
+            await m.addColumn(expenses, expenses.receiptImage);
+            await m.addColumn(expenses, expenses.receiptMime);
           }
         },
         beforeOpen: (details) async {
@@ -200,6 +209,16 @@ class AppDatabase extends _$AppDatabase {
             table: 'expenses',
             column: 'business_use_percent',
             definition: 'INTEGER NOT NULL DEFAULT 100',
+          );
+          await _ensureColumn(
+            table: 'expenses',
+            column: 'receipt_image',
+            definition: 'BLOB',
+          );
+          await _ensureColumn(
+            table: 'expenses',
+            column: 'receipt_mime',
+            definition: 'TEXT',
           );
         },
       );
