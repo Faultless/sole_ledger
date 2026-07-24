@@ -1,3 +1,4 @@
+import 'package:file_selector/file_selector.dart' as fs;
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
@@ -31,14 +32,33 @@ final ImagePicker _picker = ImagePicker();
 /// guarantees a bounded blob even on web/desktop where image_picker ignores its
 /// own resize hints.
 Future<PickedReceipt?> pickReceipt(ImageSource source) async {
-  final XFile? file = await _picker.pickImage(
-    source: source,
-    // Honoured natively on mobile; harmless elsewhere. Final bound is enforced
-    // by _compress below regardless of platform.
-    maxWidth: _maxDim.toDouble(),
-    maxHeight: _maxDim.toDouble(),
-    imageQuality: _jpegQuality,
-  );
+  // image_picker has no desktop implementation, so a gallery pick on
+  // macOS/Linux/Windows goes through file_selector instead. Camera is only
+  // offered on mobile (where the scan button appears), so it stays on
+  // image_picker.
+  final isDesktop = !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.macOS ||
+          defaultTargetPlatform == TargetPlatform.linux ||
+          defaultTargetPlatform == TargetPlatform.windows);
+
+  final XFile? file;
+  if (isDesktop && source == ImageSource.gallery) {
+    file = await fs.openFile(acceptedTypeGroups: const [
+      fs.XTypeGroup(
+        label: 'Images',
+        extensions: ['jpg', 'jpeg', 'png', 'heic', 'heif', 'webp'],
+      ),
+    ]);
+  } else {
+    file = await _picker.pickImage(
+      source: source,
+      // Honoured natively on mobile; harmless elsewhere. Final bound is enforced
+      // by _compress below regardless of platform.
+      maxWidth: _maxDim.toDouble(),
+      maxHeight: _maxDim.toDouble(),
+      imageQuality: _jpegQuality,
+    );
+  }
   if (file == null) return null;
   final raw = await file.readAsBytes();
   final bytes = await compute(_compress, raw);
