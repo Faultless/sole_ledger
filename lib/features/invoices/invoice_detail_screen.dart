@@ -39,6 +39,15 @@ class InvoiceDetailScreen extends ConsumerWidget {
     final client = ref.watch(clientProvider(invoice.clientId)).value;
     final currency = Currency.fromCode(invoice.currency);
     final status = InvoiceStatus.byName(invoice.status);
+    final wide = MediaQuery.sizeOf(context).width >= 760;
+    final onExport = profile == null || client == null
+        ? null
+        : () => InvoicePdf.shareInvoice(
+              profile: profile,
+              client: client,
+              invoice: invoice,
+              lines: lines,
+            );
 
     return Scaffold(
       appBar: AppBar(
@@ -71,51 +80,90 @@ class InvoiceDetailScreen extends ConsumerWidget {
               }
             },
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilledButton.icon(
-              onPressed: profile == null || client == null
-                  ? null
-                  : () => InvoicePdf.shareInvoice(
-                        profile: profile,
-                        client: client,
-                        invoice: invoice,
-                        lines: lines,
-                      ),
+          if (wide)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilledButton.icon(
+                onPressed: onExport,
+                icon: const Icon(Icons.picture_as_pdf),
+                label: Text(l10n.commonExportPdf),
+              ),
+            )
+          else
+            IconButton(
+              onPressed: onExport,
               icon: const Icon(Icons.picture_as_pdf),
-              label: Text(l10n.commonExportPdf),
+              tooltip: l10n.commonExportPdf,
             ),
-          ),
         ],
       ),
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 820),
-            child: ListView(
-              padding: const EdgeInsets.all(20),
-              children: [
-                _StatusBanner(status: status, l10n: l10n),
-                const SizedBox(height: 12),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(28),
-                    child: _InvoiceBody(
-                      invoice: invoice,
-                      lines: lines,
-                      client: client,
-                      profile: profile,
-                      currency: currency,
-                      l10n: l10n,
-                      fmt: fmt,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        child: _buildBody(context, wide, invoice, lines, client, profile,
+            currency, status, l10n, fmt),
+      ),
+    );
+  }
+
+  Widget _buildBody(
+    BuildContext context,
+    bool wide,
+    Invoice invoice,
+    List<InvoiceLine> lines,
+    Client? client,
+    BusinessProfile? profile,
+    Currency currency,
+    InvoiceStatus status,
+    L10n l10n,
+    dynamic fmt,
+  ) {
+    final document = Card(
+      child: Padding(
+        padding: EdgeInsets.all(wide ? 28 : 20),
+        child: _InvoiceBody(
+          invoice: invoice,
+          lines: lines,
+          client: client,
+          profile: profile,
+          currency: currency,
+          l10n: l10n,
+          fmt: fmt,
         ),
       ),
+    );
+
+    if (wide) {
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 820),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              _StatusBanner(status: status, l10n: l10n),
+              const SizedBox(height: 12),
+              document,
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Phone: render the invoice at a comfortable document width and let it
+    // scroll horizontally, so it reads like the desktop layout instead of
+    // cramming four columns into ~340px.
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _StatusBanner(status: status, l10n: l10n),
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SizedBox(width: 720, child: document),
+        ),
+      ],
     );
   }
 

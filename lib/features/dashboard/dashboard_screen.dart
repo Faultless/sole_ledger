@@ -8,6 +8,7 @@ import '../../core/widgets/common.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
 import '../../l10n/app_localizations.dart';
+import '../shell/app_shell.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -53,6 +54,7 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: navLeading(context),
         title: Text(l10n.navDashboard),
       ),
       body: SafeArea(

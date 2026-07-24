@@ -12,6 +12,7 @@ import '../../data/db/database.dart';
 import '../../data/providers.dart';
 import '../../domain/tax/expense_categories.dart';
 import '../../l10n/app_localizations.dart';
+import '../shell/app_shell.dart';
 import 'receipt_image.dart';
 import 'receipt_ocr.dart';
 
@@ -44,6 +45,7 @@ class ExpensesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: navLeading(context),
         title: Text(l10n.navExpenses),
         bottom: ytd.isEmpty
             ? null

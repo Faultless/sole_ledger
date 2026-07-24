@@ -22,8 +22,28 @@ final navDestinations = <NavDestination>[
   NavDestination('/settings', Icons.settings_outlined, Icons.settings, (l) => l.navSettings),
 ];
 
+/// Width at/above which we show the persistent NavigationRail; below it we use
+/// a hamburger drawer so seven destinations don't crowd a phone.
+const double kWideBreakpoint = 760;
+
+/// Key on the narrow-layout shell Scaffold so each screen's AppBar hamburger
+/// (see [navLeading]) can open the shared navigation drawer despite living in a
+/// nested Scaffold.
+final GlobalKey<ScaffoldState> shellScaffoldKey = GlobalKey<ScaffoldState>();
+
+/// AppBar `leading` for the top-level screens: a hamburger that opens the nav
+/// drawer on phones, and nothing on wide layouts (the rail handles navigation).
+Widget? navLeading(BuildContext context) {
+  if (MediaQuery.sizeOf(context).width >= kWideBreakpoint) return null;
+  return IconButton(
+    icon: const Icon(Icons.menu),
+    tooltip: MaterialLocalizations.of(context).openAppDrawerTooltip,
+    onPressed: () => shellScaffoldKey.currentState?.openDrawer(),
+  );
+}
+
 /// Responsive navigation shell: a rail on wide layouts (desktop/web/tablet),
-/// a bottom bar on phones.
+/// a hamburger drawer on phones.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.child});
   final Widget child;
@@ -34,14 +54,11 @@ class AppShell extends StatelessWidget {
     return i < 0 ? 0 : i;
   }
 
-  void _go(BuildContext context, int index) =>
-      context.go(navDestinations[index].route);
-
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
     final index = _indexFor(context);
-    final wide = MediaQuery.sizeOf(context).width >= 760;
+    final wide = MediaQuery.sizeOf(context).width >= kWideBreakpoint;
 
     if (wide) {
       return Scaffold(
@@ -49,7 +66,8 @@ class AppShell extends StatelessWidget {
           children: [
             NavigationRail(
               selectedIndex: index,
-              onDestinationSelected: (i) => _go(context, i),
+              onDestinationSelected: (i) =>
+                  context.go(navDestinations[i].route),
               extended: MediaQuery.sizeOf(context).width >= 1100,
               minExtendedWidth: 200,
               leading: const _RailBrand(),
@@ -69,20 +87,58 @@ class AppShell extends StatelessWidget {
       );
     }
 
+    // Phone: the drawer lives on this shell Scaffold; each screen's AppBar
+    // opens it via shellScaffoldKey. No bottom bar (seven items is too many).
     return Scaffold(
+      key: shellScaffoldKey,
+      drawer: _NavDrawer(selectedIndex: index),
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: index,
-        onDestinationSelected: (i) => _go(context, i),
-        destinations: [
-          for (final d in navDestinations)
-            NavigationDestination(
-              icon: Icon(d.icon),
-              selectedIcon: Icon(d.selectedIcon),
-              label: d.label(l10n),
-            ),
-        ],
-      ),
+    );
+  }
+}
+
+class _NavDrawer extends StatelessWidget {
+  const _NavDrawer({required this.selectedIndex});
+  final int selectedIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
+    final scheme = Theme.of(context).colorScheme;
+    return NavigationDrawer(
+      selectedIndex: selectedIndex,
+      onDestinationSelected: (i) {
+        Navigator.of(context).pop(); // close the drawer
+        context.go(navDestinations[i].route);
+      },
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 24, 16, 12),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: scheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.account_balance_wallet_outlined,
+                    color: scheme.onPrimaryContainer),
+              ),
+              const SizedBox(width: 12),
+              Text(l10n.appTitle,
+                  style: Theme.of(context).textTheme.titleMedium),
+            ],
+          ),
+        ),
+        for (final d in navDestinations)
+          NavigationDrawerDestination(
+            icon: Icon(d.icon),
+            selectedIcon: Icon(d.selectedIcon),
+            label: Text(d.label(l10n)),
+          ),
+      ],
     );
   }
 }

@@ -8,6 +8,7 @@ import '../../core/widgets/common.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
 import '../../l10n/app_localizations.dart';
+import '../shell/app_shell.dart';
 
 class InvoicesScreen extends ConsumerWidget {
   const InvoicesScreen({super.key});
@@ -21,7 +22,7 @@ class InvoicesScreen extends ConsumerWidget {
     final clientNames = {for (final c in clients) c.id: c.name};
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navInvoices)),
+      appBar: AppBar(leading: navLeading(context), title: Text(l10n.navInvoices)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: clients.isEmpty
             ? null

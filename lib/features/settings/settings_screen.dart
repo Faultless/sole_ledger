@@ -10,6 +10,7 @@ import '../../data/db/db_location.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
 import '../../l10n/app_localizations.dart';
+import '../shell/app_shell.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -106,6 +107,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: navLeading(context),
         title: Text(l10n.settingsTitle),
         actions: [
           Padding(

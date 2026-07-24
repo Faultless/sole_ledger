@@ -10,6 +10,7 @@ import '../../data/providers.dart';
 import '../../domain/enums.dart';
 import '../../domain/tax/vat_treatment.dart';
 import '../../l10n/app_localizations.dart';
+import '../shell/app_shell.dart';
 
 class ClientsScreen extends ConsumerWidget {
   const ClientsScreen({super.key});
@@ -20,7 +21,7 @@ class ClientsScreen extends ConsumerWidget {
     final clients = ref.watch(clientsProvider).value ?? const [];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navClients)),
+      appBar: AppBar(leading: navLeading(context), title: Text(l10n.navClients)),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showClientEditor(context, null),
         icon: const Icon(Icons.add),

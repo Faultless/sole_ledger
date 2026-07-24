@@ -6,6 +6,7 @@ import '../../core/widgets/common.dart';
 import '../../data/db/database.dart';
 import '../../data/providers.dart';
 import '../../l10n/app_localizations.dart';
+import '../shell/app_shell.dart';
 
 class TimeScreen extends ConsumerWidget {
   const TimeScreen({super.key});
@@ -21,6 +22,7 @@ class TimeScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: navLeading(context),
         title: Text(l10n.navTime),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(36),

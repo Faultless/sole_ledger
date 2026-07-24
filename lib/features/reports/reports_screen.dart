@@ -9,6 +9,7 @@ import '../../domain/tax/expense_categories.dart';
 import '../../domain/tax/period_report.dart';
 import '../../domain/tax/vat_treatment.dart';
 import '../../l10n/app_localizations.dart';
+import '../shell/app_shell.dart';
 import 'report_pdf.dart';
 
 class ReportsScreen extends ConsumerStatefulWidget {
@@ -143,7 +144,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final years = [for (var y = DateTime.now().year; y >= 2022; y--) y];
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.navReports)),
+      appBar: AppBar(leading: navLeading(context), title: Text(l10n.navReports)),
       body: SafeArea(
         child: Stack(
           children: [
@@ -317,14 +318,25 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 
   Widget _btn(String label, VoidCallback onTap, {bool filled = true}) {
-    return filled
-        ? FilledButton.icon(
-            onPressed: onTap,
-            icon: const Icon(Icons.picture_as_pdf, size: 18),
-            label: Text(label))
-        : OutlinedButton.icon(
-            onPressed: onTap,
-            icon: const Icon(Icons.description_outlined, size: 18),
-            label: Text(label));
+    // Bounded width + a Flexible, ellipsizing label so a long translation never
+    // overflows the button (and the Wrap can flow buttons onto the next line).
+    final child = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(filled ? Icons.picture_as_pdf : Icons.description_outlined,
+            size: 18),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(label,
+              maxLines: 1, overflow: TextOverflow.ellipsis, softWrap: false),
+        ),
+      ],
+    );
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 240),
+      child: filled
+          ? FilledButton(onPressed: onTap, child: child)
+          : OutlinedButton(onPressed: onTap, child: child),
+    );
   }
 }
