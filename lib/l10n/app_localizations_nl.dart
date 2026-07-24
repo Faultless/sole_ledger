@@ -30,6 +30,9 @@ class L10nNl extends L10n {
   String get navExpenses => 'Kosten';
 
   @override
+  String get navAssets => 'Activa';
+
+  @override
   String get navSettings => 'Instellingen';
 
   @override

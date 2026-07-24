@@ -214,7 +214,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                             for (final lang in AppLanguage.values)
                               ButtonSegment(
                                   value: lang.code,
-                                  label: Text(lang.nativeName)),
+                                  label: Text(lang.code.toUpperCase())),
                           ],
                           selected: {_lang},
                           onSelectionChanged: (s) =>

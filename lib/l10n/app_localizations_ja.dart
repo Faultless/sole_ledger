@@ -30,6 +30,9 @@ class L10nJa extends L10n {
   String get navExpenses => '経費';
 
   @override
+  String get navAssets => '固定資産';
+
+  @override
   String get navSettings => '設定';
 
   @override

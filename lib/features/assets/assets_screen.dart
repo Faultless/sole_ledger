@@ -1,13 +1,13 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
 import '../../data/db/database.dart';
 import '../../data/providers.dart';
 import '../../domain/tax/depreciation.dart';
+import '../shell/app_shell.dart';
 
 /// Fixed-asset register (固定資産台帳): assets whose cost is deducted over time
 /// via depreciation, feeding the tax set-aside and annual report.
@@ -41,10 +41,7 @@ class AssetsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/expenses'),
-        ),
+        leading: navLeading(context),
         title: const Text('Fixed assets'),
         bottom: byCur.isEmpty
             ? null

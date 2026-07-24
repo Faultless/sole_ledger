@@ -19,6 +19,7 @@ final navDestinations = <NavDestination>[
   NavDestination('/invoices', Icons.receipt_long_outlined, Icons.receipt_long, (l) => l.navInvoices),
   NavDestination('/reports', Icons.insights_outlined, Icons.insights, (l) => l.navReports),
   NavDestination('/expenses', Icons.payments_outlined, Icons.payments, (l) => l.navExpenses),
+  NavDestination('/assets', Icons.inventory_2_outlined, Icons.inventory_2, (l) => l.navAssets),
   NavDestination('/settings', Icons.settings_outlined, Icons.settings, (l) => l.navSettings),
 ];
 

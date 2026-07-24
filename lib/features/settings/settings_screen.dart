@@ -134,7 +134,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 child: SegmentedButton<AppLanguage>(
                   segments: [
                     for (final lang in AppLanguage.values)
-                      ButtonSegment(value: lang, label: Text(lang.nativeName)),
+                      ButtonSegment(
+                          value: lang, label: Text(lang.code.toUpperCase())),
                   ],
                   selected: {currentLang},
                   onSelectionChanged: (s) => _setLanguage(s.first),

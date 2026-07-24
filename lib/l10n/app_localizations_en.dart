@@ -30,6 +30,9 @@ class L10nEn extends L10n {
   String get navExpenses => 'Expenses';
 
   @override
+  String get navAssets => 'Assets';
+
+  @override
   String get navSettings => 'Settings';
 
   @override

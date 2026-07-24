@@ -141,6 +141,12 @@ abstract class L10n {
   /// **'Expenses'**
   String get navExpenses;
 
+  /// No description provided for @navAssets.
+  ///
+  /// In en, this message translates to:
+  /// **'Assets'**
+  String get navAssets;
+
   /// No description provided for @navSettings.
   ///
   /// In en, this message translates to:
