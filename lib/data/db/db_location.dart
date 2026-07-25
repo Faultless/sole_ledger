@@ -1,6 +1,8 @@
 // Resolves where the native database file lives. Isolated behind a conditional
 // import because computing a home-directory path needs dart:io, which must not
 // be imported into database.dart (that file is also compiled for the web).
+import 'dart:typed_data';
+
 import 'db_location_stub.dart' if (dart.library.io) 'db_location_io.dart' as impl;
 
 /// A `databasePath` callback for drift_flutter's [DriftNativeOptions], or null
@@ -25,3 +27,7 @@ bool get canEnableExternalSync => impl.canEnableExternalSync;
 /// shared `/sdcard/SoleLedger` folder so Syncthing can reach it. Returns true if
 /// granted; the app must then be restarted. No-op (false) elsewhere.
 Future<bool> enableExternalSync() => impl.enableExternalSync();
+
+/// The current database file's bytes, for a backup/export. Null on web (no file)
+/// or if the file isn't found.
+Future<Uint8List?> readDatabaseBytes() => impl.readDatabaseBytes();

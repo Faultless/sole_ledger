@@ -124,6 +124,21 @@ class AppRepository {
   Future<void> deleteAsset(String id) =>
       (db.delete(db.assets)..where((t) => t.id.equals(id))).go();
 
+  // --- Data management -----------------------------------------------------
+
+  /// Wipes every table (children first for FK safety). The caller should
+  /// re-seed the business profile afterwards via [ensureBusinessProfile].
+  Future<void> deleteAllData() => db.transaction(() async {
+        await db.delete(db.invoiceLines).go();
+        await db.delete(db.invoices).go();
+        await db.delete(db.timeEntries).go();
+        await db.delete(db.expenses).go();
+        await db.delete(db.assets).go();
+        await db.delete(db.projects).go();
+        await db.delete(db.clients).go();
+        await db.delete(db.businessProfiles).go();
+      });
+
   // --- Time entries --------------------------------------------------------
 
   Stream<List<TimeEntry>> watchTimeEntries({DateTime? from, DateTime? to}) {

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -80,6 +81,24 @@ Future<String?> currentDatabasePath() async {
     return p.join(dir.path, _fileName);
   }
   return null;
+}
+
+/// Reads the current database file's bytes for a backup/export. Callers should
+/// checkpoint the WAL first so recent writes are included. Returns null if the
+/// file isn't found. (Native only; web has no file to read.)
+Future<Uint8List?> readDatabaseBytes() async {
+  final resolver = fixedDatabasePath();
+  String path;
+  if (resolver != null) {
+    path = await resolver();
+  } else {
+    // iOS: drift's app-documents default.
+    final docs = await getApplicationDocumentsDirectory();
+    path = p.join(docs.path, _fileName);
+  }
+  final file = File(path);
+  if (!await file.exists()) return null;
+  return file.readAsBytes();
 }
 
 /// Whether this platform offers the "enable external sync folder" action

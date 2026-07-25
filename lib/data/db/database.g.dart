@@ -281,6 +281,18 @@ class $BusinessProfilesTable extends BusinessProfiles
     requiredDuringInsert: false,
     defaultValue: const Constant(160),
   );
+  static const VerificationMeta _themeModeMeta = const VerificationMeta(
+    'themeMode',
+  );
+  @override
+  late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
+    'theme_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('system'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -307,6 +319,7 @@ class $BusinessProfilesTable extends BusinessProfiles
     signaturePath,
     defaultHourlyRate,
     eurToJpyRate,
+    themeMode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -493,6 +506,12 @@ class $BusinessProfilesTable extends BusinessProfiles
         ),
       );
     }
+    if (data.containsKey('theme_mode')) {
+      context.handle(
+        _themeModeMeta,
+        themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta),
+      );
+    }
     return context;
   }
 
@@ -598,6 +617,10 @@ class $BusinessProfilesTable extends BusinessProfiles
         DriftSqlType.double,
         data['${effectivePrefix}eur_to_jpy_rate'],
       )!,
+      themeMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}theme_mode'],
+      )!,
     );
   }
 
@@ -635,6 +658,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
   /// EUR→JPY rate used to convert profit for the Japanese income-tax estimate
   /// (dashboard set-aside + annual report). A planning figure, edited in Settings.
   final double eurToJpyRate;
+
+  /// App theme preference: 'system' | 'light' | 'dark'.
+  final String themeMode;
   const BusinessProfile({
     required this.id,
     required this.legalName,
@@ -660,6 +686,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     this.signaturePath,
     required this.defaultHourlyRate,
     required this.eurToJpyRate,
+    required this.themeMode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -692,6 +719,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     }
     map['default_hourly_rate'] = Variable<double>(defaultHourlyRate);
     map['eur_to_jpy_rate'] = Variable<double>(eurToJpyRate);
+    map['theme_mode'] = Variable<String>(themeMode);
     return map;
   }
 
@@ -725,6 +753,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           : Value(signaturePath),
       defaultHourlyRate: Value(defaultHourlyRate),
       eurToJpyRate: Value(eurToJpyRate),
+      themeMode: Value(themeMode),
     );
   }
 
@@ -760,6 +789,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       signaturePath: serializer.fromJson<String?>(json['signaturePath']),
       defaultHourlyRate: serializer.fromJson<double>(json['defaultHourlyRate']),
       eurToJpyRate: serializer.fromJson<double>(json['eurToJpyRate']),
+      themeMode: serializer.fromJson<String>(json['themeMode']),
     );
   }
   @override
@@ -790,6 +820,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       'signaturePath': serializer.toJson<String?>(signaturePath),
       'defaultHourlyRate': serializer.toJson<double>(defaultHourlyRate),
       'eurToJpyRate': serializer.toJson<double>(eurToJpyRate),
+      'themeMode': serializer.toJson<String>(themeMode),
     };
   }
 
@@ -818,6 +849,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     Value<String?> signaturePath = const Value.absent(),
     double? defaultHourlyRate,
     double? eurToJpyRate,
+    String? themeMode,
   }) => BusinessProfile(
     id: id ?? this.id,
     legalName: legalName ?? this.legalName,
@@ -845,6 +877,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
         : this.signaturePath,
     defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
     eurToJpyRate: eurToJpyRate ?? this.eurToJpyRate,
+    themeMode: themeMode ?? this.themeMode,
   );
   BusinessProfile copyWithCompanion(BusinessProfilesCompanion data) {
     return BusinessProfile(
@@ -894,6 +927,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       eurToJpyRate: data.eurToJpyRate.present
           ? data.eurToJpyRate.value
           : this.eurToJpyRate,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
     );
   }
 
@@ -923,7 +957,8 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           ..write('logoPath: $logoPath, ')
           ..write('signaturePath: $signaturePath, ')
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
-          ..write('eurToJpyRate: $eurToJpyRate')
+          ..write('eurToJpyRate: $eurToJpyRate, ')
+          ..write('themeMode: $themeMode')
           ..write(')'))
         .toString();
   }
@@ -954,6 +989,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     signaturePath,
     defaultHourlyRate,
     eurToJpyRate,
+    themeMode,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -982,7 +1018,8 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           other.logoPath == this.logoPath &&
           other.signaturePath == this.signaturePath &&
           other.defaultHourlyRate == this.defaultHourlyRate &&
-          other.eurToJpyRate == this.eurToJpyRate);
+          other.eurToJpyRate == this.eurToJpyRate &&
+          other.themeMode == this.themeMode);
 }
 
 class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
@@ -1010,6 +1047,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
   final Value<String?> signaturePath;
   final Value<double> defaultHourlyRate;
   final Value<double> eurToJpyRate;
+  final Value<String> themeMode;
   final Value<int> rowid;
   const BusinessProfilesCompanion({
     this.id = const Value.absent(),
@@ -1036,6 +1074,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     this.signaturePath = const Value.absent(),
     this.defaultHourlyRate = const Value.absent(),
     this.eurToJpyRate = const Value.absent(),
+    this.themeMode = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   BusinessProfilesCompanion.insert({
@@ -1063,6 +1102,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     this.signaturePath = const Value.absent(),
     this.defaultHourlyRate = const Value.absent(),
     this.eurToJpyRate = const Value.absent(),
+    this.themeMode = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id);
   static Insertable<BusinessProfile> custom({
@@ -1090,6 +1130,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     Expression<String>? signaturePath,
     Expression<double>? defaultHourlyRate,
     Expression<double>? eurToJpyRate,
+    Expression<String>? themeMode,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1118,6 +1159,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
       if (signaturePath != null) 'signature_path': signaturePath,
       if (defaultHourlyRate != null) 'default_hourly_rate': defaultHourlyRate,
       if (eurToJpyRate != null) 'eur_to_jpy_rate': eurToJpyRate,
+      if (themeMode != null) 'theme_mode': themeMode,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1147,6 +1189,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     Value<String?>? signaturePath,
     Value<double>? defaultHourlyRate,
     Value<double>? eurToJpyRate,
+    Value<String>? themeMode,
     Value<int>? rowid,
   }) {
     return BusinessProfilesCompanion(
@@ -1174,6 +1217,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
       signaturePath: signaturePath ?? this.signaturePath,
       defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
       eurToJpyRate: eurToJpyRate ?? this.eurToJpyRate,
+      themeMode: themeMode ?? this.themeMode,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1255,6 +1299,9 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     if (eurToJpyRate.present) {
       map['eur_to_jpy_rate'] = Variable<double>(eurToJpyRate.value);
     }
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<String>(themeMode.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1288,6 +1335,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
           ..write('signaturePath: $signaturePath, ')
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
           ..write('eurToJpyRate: $eurToJpyRate, ')
+          ..write('themeMode: $themeMode, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5913,6 +5961,7 @@ typedef $$BusinessProfilesTableCreateCompanionBuilder =
       Value<String?> signaturePath,
       Value<double> defaultHourlyRate,
       Value<double> eurToJpyRate,
+      Value<String> themeMode,
       Value<int> rowid,
     });
 typedef $$BusinessProfilesTableUpdateCompanionBuilder =
@@ -5941,6 +5990,7 @@ typedef $$BusinessProfilesTableUpdateCompanionBuilder =
       Value<String?> signaturePath,
       Value<double> defaultHourlyRate,
       Value<double> eurToJpyRate,
+      Value<String> themeMode,
       Value<int> rowid,
     });
 
@@ -6070,6 +6120,11 @@ class $$BusinessProfilesTableFilterComposer
 
   ColumnFilters<double> get eurToJpyRate => $composableBuilder(
     column: $table.eurToJpyRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6202,6 +6257,11 @@ class $$BusinessProfilesTableOrderingComposer
     column: $table.eurToJpyRate,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BusinessProfilesTableAnnotationComposer
@@ -6306,6 +6366,9 @@ class $$BusinessProfilesTableAnnotationComposer
     column: $table.eurToJpyRate,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
 }
 
 class $$BusinessProfilesTableTableManager
@@ -6369,6 +6432,7 @@ class $$BusinessProfilesTableTableManager
                 Value<String?> signaturePath = const Value.absent(),
                 Value<double> defaultHourlyRate = const Value.absent(),
                 Value<double> eurToJpyRate = const Value.absent(),
+                Value<String> themeMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BusinessProfilesCompanion(
                 id: id,
@@ -6395,6 +6459,7 @@ class $$BusinessProfilesTableTableManager
                 signaturePath: signaturePath,
                 defaultHourlyRate: defaultHourlyRate,
                 eurToJpyRate: eurToJpyRate,
+                themeMode: themeMode,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6423,6 +6488,7 @@ class $$BusinessProfilesTableTableManager
                 Value<String?> signaturePath = const Value.absent(),
                 Value<double> defaultHourlyRate = const Value.absent(),
                 Value<double> eurToJpyRate = const Value.absent(),
+                Value<String> themeMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BusinessProfilesCompanion.insert(
                 id: id,
@@ -6449,6 +6515,7 @@ class $$BusinessProfilesTableTableManager
                 signaturePath: signaturePath,
                 defaultHourlyRate: defaultHourlyRate,
                 eurToJpyRate: eurToJpyRate,
+                themeMode: themeMode,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

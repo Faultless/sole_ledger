@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/format/formatters.dart';
@@ -32,6 +33,16 @@ final appLanguageProvider = Provider<AppLanguage>((ref) {
 final formattersProvider = Provider<Formatters>(
   (ref) => Formatters(ref.watch(appLanguageProvider).code),
 );
+
+/// The app theme mode, derived from the saved business profile.
+final themeModeProvider = Provider<ThemeMode>((ref) {
+  final mode = ref.watch(businessProfileProvider).value?.themeMode ?? 'system';
+  return switch (mode) {
+    'light' => ThemeMode.light,
+    'dark' => ThemeMode.dark,
+    _ => ThemeMode.system,
+  };
+});
 
 final clientsProvider = StreamProvider<List<Client>>(
   (ref) => ref.watch(repositoryProvider).watchClients(),

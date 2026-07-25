@@ -46,6 +46,8 @@ class BusinessProfiles extends Table {
   /// (dashboard set-aside + annual report). A planning figure, edited in Settings.
   RealColumn get eurToJpyRate =>
       real().withDefault(const Constant(160))();
+  /// App theme preference: 'system' | 'light' | 'dark'.
+  TextColumn get themeMode => text().withDefault(const Constant('system'))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -214,7 +216,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -231,6 +233,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 5) {
             await m.createTable(assets);
+          }
+          if (from < 6) {
+            await m.addColumn(businessProfiles, businessProfiles.themeMode);
           }
         },
         beforeOpen: (details) async {
@@ -258,6 +263,11 @@ class AppDatabase extends _$AppDatabase {
             table: 'business_profiles',
             column: 'eur_to_jpy_rate',
             definition: 'REAL NOT NULL DEFAULT 160',
+          );
+          await _ensureColumn(
+            table: 'business_profiles',
+            column: 'theme_mode',
+            definition: "TEXT NOT NULL DEFAULT 'system'",
           );
           await _ensureTable('assets', assets);
         },

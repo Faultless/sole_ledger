@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart' show Value;
+import 'package:file_saver/file_saver.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -101,6 +102,121 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         );
   }
 
+  Future<void> _setTheme(String mode) async {
+    await ref.read(repositoryProvider).saveBusinessProfile(
+          BusinessProfilesCompanion(themeMode: Value(mode)),
+        );
+  }
+
+  void _snack(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _exportBackup() async {
+    try {
+      // Flush the WAL into the main file so the backup is consistent.
+      await ref
+          .read(databaseProvider)
+          .customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
+      final bytes = await readDatabaseBytes();
+      if (bytes == null) {
+        _snack(
+            'Backup isn\'t available here (web keeps data inside the browser). '
+            'Use the desktop app to export.');
+        return;
+      }
+      final now = DateTime.now();
+      final stamp =
+          '${now.year}${_two(now.month)}${_two(now.day)}';
+      await FileSaver.instance.saveFile(
+        name: 'sole_ledger-backup-$stamp',
+        bytes: bytes,
+        fileExtension: 'sqlite',
+        mimeType: MimeType.other,
+      );
+      _snack('Backup saved.');
+    } catch (e) {
+      _snack('Export failed: $e');
+    }
+  }
+
+  String _two(int v) => v < 10 ? '0$v' : '$v';
+
+  Future<void> _confirmReset() async {
+    final ok = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Reset all data?'),
+            content: const Text(
+              'This permanently deletes every client, project, time entry, '
+              'invoice, expense and asset on this device. It cannot be undone, '
+              'and if sync is enabled the deletion will propagate to your other '
+              'devices. Export a backup first if unsure.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                    backgroundColor: Theme.of(ctx).colorScheme.error),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: const Text('Delete everything'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!ok) return;
+    final repo = ref.read(repositoryProvider);
+    await repo.deleteAllData();
+    await repo.ensureBusinessProfile(); // seed a fresh default profile
+    if (mounted) {
+      setState(() => _seeded = false); // re-seed the form from the new profile
+      _snack('All data cleared.');
+    }
+  }
+
+  Widget _manageDataCard(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            OutlinedButton.icon(
+              onPressed: _exportBackup,
+              icon: const Icon(Icons.download_outlined, size: 18),
+              label: const Text('Export backup (.sqlite)'),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Saves a copy of the whole ledger as a single file you can archive '
+              'or move between devices.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurfaceVariant),
+            ),
+            const Divider(height: 28),
+            OutlinedButton.icon(
+              onPressed: _confirmReset,
+              icon: Icon(Icons.delete_forever_outlined,
+                  size: 18, color: scheme.error),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: scheme.error,
+                side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
+              ),
+              label: const Text('Reset all data'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
@@ -127,6 +243,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            SectionHeader(title: 'Appearance'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: 'system', label: Text('System')),
+                    ButtonSegment(value: 'light', label: Text('Light')),
+                    ButtonSegment(value: 'dark', label: Text('Dark')),
+                  ],
+                  selected: {profile?.themeMode ?? 'system'},
+                  onSelectionChanged: (s) => _setTheme(s.first),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             SectionHeader(title: l10n.settingsLanguage),
             Card(
               child: Padding(
@@ -139,6 +272,41 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ],
                   selected: {currentLang},
                   onSelectionChanged: (s) => _setLanguage(s.first),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            SectionHeader(title: 'Currencies & rates'),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    DropdownButtonFormField<String>(
+                      initialValue: _currency,
+                      decoration:
+                          const InputDecoration(labelText: 'Default currency'),
+                      items: [
+                        for (final c in Currency.values)
+                          DropdownMenuItem(
+                              value: c.code,
+                              child: Text('${c.symbol} ${c.code}')),
+                      ],
+                      onChanged: (v) => setState(() => _currency = v ?? 'EUR'),
+                    ),
+                    const SizedBox(height: 12),
+                    _field('fxRate', 'EUR → JPY rate (for tax estimates)',
+                        number: true),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Invoices, expenses and reports use EUR, JPY and USD. The '
+                      'EUR→JPY rate converts profit for the Japanese tax estimate. '
+                      'Tap Save to apply.',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -183,26 +351,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Expanded(child: _field('prefix', 'Invoice prefix')),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _currency,
-                          decoration:
-                              const InputDecoration(labelText: 'Default currency'),
-                          items: [
-                            for (final c in Currency.values)
-                              DropdownMenuItem(
-                                  value: c.code, child: Text('${c.symbol} ${c.code}')),
-                          ],
-                          onChanged: (v) => setState(() => _currency = v ?? 'EUR'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
                           child: _field('rate', 'Default hourly rate',
                               number: true)),
                     ]),
-                    const SizedBox(height: 4),
-                    _field('fxRate', 'EUR → JPY rate (for tax estimates)',
-                        number: true),
                   ],
                 ),
               ),
@@ -231,6 +382,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             SectionHeader(title: 'Data & sync'),
             _dataSyncCard(context),
+            const SizedBox(height: 16),
+            SectionHeader(title: 'Manage data'),
+            _manageDataCard(context),
           ],
         ),
       ),
