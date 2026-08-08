@@ -57,6 +57,7 @@
   "@commonDeleteCountConfirm": {
     "placeholders": { "count": { "type": "int" } }
   },
+  "commonToday": "今日",
 
   "dashboardHoursThisMonth": "今月の稼働時間",
   "dashboardUnbilled": "未請求",

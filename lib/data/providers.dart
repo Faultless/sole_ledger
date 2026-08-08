@@ -93,10 +93,20 @@ final clientProvider = FutureProvider.family<Client?, String>(
   (ref, id) => ref.watch(repositoryProvider).findClient(id),
 );
 
-/// Time entries for the current month (used by the Time screen).
+/// Time entries for the current month (used by the dashboard KPI).
 final monthTimeEntriesProvider = StreamProvider<List<TimeEntry>>((ref) {
   final now = DateTime.now();
   final from = DateTime(now.year, now.month, 1);
   final to = DateTime(now.year, now.month + 1, 1);
   return ref.watch(repositoryProvider).watchTimeEntries(from: from, to: to);
+});
+
+/// Time entries for an arbitrary month, keyed by that month's first day (used
+/// by the Time screen's month browser). Kept separate from
+/// [monthTimeEntriesProvider] so browsing past months never affects the
+/// dashboard's "this month" KPI.
+final timeEntriesForMonthProvider =
+    StreamProvider.family<List<TimeEntry>, DateTime>((ref, monthStart) {
+  final to = DateTime(monthStart.year, monthStart.month + 1, 1);
+  return ref.watch(repositoryProvider).watchTimeEntries(from: monthStart, to: to);
 });

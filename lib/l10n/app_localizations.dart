@@ -387,6 +387,12 @@ abstract class L10n {
   /// **'Delete {count} items? This can\'t be undone.'**
   String commonDeleteCountConfirm(int count);
 
+  /// No description provided for @commonToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get commonToday;
+
   /// No description provided for @dashboardHoursThisMonth.
   ///
   /// In en, this message translates to:

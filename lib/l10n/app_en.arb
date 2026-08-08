@@ -57,6 +57,7 @@
   "@commonDeleteCountConfirm": {
     "placeholders": { "count": { "type": "int" } }
   },
+  "commonToday": "Today",
 
   "dashboardHoursThisMonth": "Hours this month",
   "dashboardUnbilled": "Unbilled",

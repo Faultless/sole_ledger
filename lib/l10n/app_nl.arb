@@ -57,6 +57,7 @@
   "@commonDeleteCountConfirm": {
     "placeholders": { "count": { "type": "int" } }
   },
+  "commonToday": "Vandaag",
 
   "dashboardHoursThisMonth": "Uren deze maand",
   "dashboardUnbilled": "Nog te factureren",

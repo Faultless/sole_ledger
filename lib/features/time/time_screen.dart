@@ -15,9 +15,22 @@ class TimeScreen extends ConsumerStatefulWidget {
   ConsumerState<TimeScreen> createState() => _TimeScreenState();
 }
 
+DateTime _startOfMonth(DateTime d) => DateTime(d.year, d.month, 1);
+
 class _TimeScreenState extends ConsumerState<TimeScreen> {
   bool _selecting = false;
   final Set<String> _selected = {};
+  late DateTime _month = _startOfMonth(DateTime.now());
+
+  void _shiftMonth(int delta) {
+    setState(() {
+      _month = DateTime(_month.year, _month.month + delta, 1);
+      _selected.clear();
+      _selecting = false;
+    });
+  }
+
+  bool get _isCurrentMonth => _month == _startOfMonth(DateTime.now());
 
   void _enterSelection(String id) {
     setState(() {
@@ -60,7 +73,7 @@ class _TimeScreenState extends ConsumerState<TimeScreen> {
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
     final fmt = ref.watch(formattersProvider);
-    final entries = ref.watch(monthTimeEntriesProvider).value ?? const [];
+    final entries = ref.watch(timeEntriesForMonthProvider(_month)).value ?? const [];
     final clients = ref.watch(clientsProvider).value ?? const [];
     final clientNames = {for (final c in clients) c.id: c.name};
     final totalMinutes = entries.fold<int>(0, (s, e) => s + e.minutes);
@@ -99,16 +112,37 @@ class _TimeScreenState extends ConsumerState<TimeScreen> {
                   ),
               ],
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(36),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                    child: Text(
-                      '${fmt.monthYear(DateTime.now())} · ${fmt.hoursFromMinutes(totalMinutes)}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant),
-                    ),
+                preferredSize: const Size.fromHeight(40),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 0, 16, 6),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: () => _shiftMonth(-1),
+                      ),
+                      Text(
+                        '${fmt.monthYear(_month)} · ${fmt.hoursFromMinutes(totalMinutes)}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right),
+                        visualDensity: VisualDensity.compact,
+                        onPressed: _isCurrentMonth ? null : () => _shiftMonth(1),
+                      ),
+                      if (!_isCurrentMonth) ...[
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => setState(
+                              () => _month = _startOfMonth(DateTime.now())),
+                          child: Text(l10n.commonToday),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
@@ -155,7 +189,9 @@ class _TimeScreenState extends ConsumerState<TimeScreen> {
                           fontFeatures: const [FontFeature.tabularFigures()]),
                     ),
                     selected: selected,
-                    onTap: _selecting ? () => _toggle(e.id) : null,
+                    onTap: _selecting
+                        ? () => _toggle(e.id)
+                        : () => _openEntry(context, ref, clients, entry: e),
                     onLongPress:
                         _selecting ? null : () => _enterSelection(e.id),
                   );
@@ -179,30 +215,37 @@ class _TimeScreenState extends ConsumerState<TimeScreen> {
     );
   }
 
-  void _openEntry(BuildContext context, WidgetRef ref, List<Client> clients) {
+  void _openEntry(BuildContext context, WidgetRef ref, List<Client> clients,
+      {TimeEntry? entry}) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => _TimeEntrySheet(clients: clients),
+      builder: (_) => _TimeEntrySheet(clients: clients, entry: entry),
     );
   }
 }
 
 class _TimeEntrySheet extends ConsumerStatefulWidget {
-  const _TimeEntrySheet({required this.clients});
+  const _TimeEntrySheet({required this.clients, this.entry});
   final List<Client> clients;
+  final TimeEntry? entry;
   @override
   ConsumerState<_TimeEntrySheet> createState() => _TimeEntrySheetState();
 }
 
 class _TimeEntrySheetState extends ConsumerState<_TimeEntrySheet> {
-  late String _clientId = widget.clients.first.id;
-  String? _projectId;
-  DateTime _date = DateTime.now();
-  final _hours = TextEditingController();
-  final _desc = TextEditingController();
-  bool _billable = true;
+  late String _clientId = widget.entry?.clientId ?? widget.clients.first.id;
+  late String? _projectId = widget.entry?.projectId;
+  late DateTime _date = widget.entry?.date ?? DateTime.now();
+  late final _hours = TextEditingController(
+      text: widget.entry == null ? '' : _trimHours(widget.entry!.minutes / 60.0));
+  late final _desc =
+      TextEditingController(text: widget.entry?.description ?? '');
+  late bool _billable = widget.entry?.billable ?? true;
+
+  static String _trimHours(double h) =>
+      h == h.roundToDouble() ? h.toStringAsFixed(0) : h.toString();
 
   @override
   void dispose() {
@@ -217,7 +260,7 @@ class _TimeEntrySheetState extends ConsumerState<_TimeEntrySheet> {
     if (minutes <= 0) return;
     final repo = ref.read(repositoryProvider);
     await repo.upsertTimeEntry(TimeEntriesCompanion(
-      id: Value(repo.newId()),
+      id: Value(widget.entry?.id ?? repo.newId()),
       clientId: Value(_clientId),
       projectId: Value(_projectId),
       date: Value(DateTime(_date.year, _date.month, _date.day)),
@@ -239,7 +282,10 @@ class _TimeEntrySheetState extends ConsumerState<_TimeEntrySheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(l10n.dashboardQuickTime,
+          Text(
+              widget.entry == null
+                  ? l10n.dashboardQuickTime
+                  : l10n.commonEdit,
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           DropdownButtonFormField<String>(

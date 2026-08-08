@@ -159,6 +159,9 @@ class L10nNl extends L10n {
   }
 
   @override
+  String get commonToday => 'Vandaag';
+
+  @override
   String get dashboardHoursThisMonth => 'Uren deze maand';
 
   @override
