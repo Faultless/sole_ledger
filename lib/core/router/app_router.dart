@@ -53,6 +53,12 @@ final appRouter = GoRouter(
           ),
         ),
         GoRoute(
+          path: '/invoices/:id/edit',
+          pageBuilder: (c, s) => NoTransitionPage(
+            child: InvoiceEditorScreen(invoiceId: s.pathParameters['id']!),
+          ),
+        ),
+        GoRoute(
           path: '/reports',
           pageBuilder: (c, s) => const NoTransitionPage(child: ReportsScreen()),
         ),

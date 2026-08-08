@@ -85,8 +85,8 @@ final invoiceProvider = StreamProvider.family<Invoice?, String>(
   (ref, id) => ref.watch(repositoryProvider).watchInvoice(id),
 );
 
-final invoiceLinesProvider = FutureProvider.family<List<InvoiceLine>, String>(
-  (ref, id) => ref.watch(repositoryProvider).invoiceLines(id),
+final invoiceLinesProvider = StreamProvider.family<List<InvoiceLine>, String>(
+  (ref, id) => ref.watch(repositoryProvider).watchInvoiceLines(id),
 );
 
 final clientProvider = FutureProvider.family<Client?, String>(

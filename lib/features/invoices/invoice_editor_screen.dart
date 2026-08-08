@@ -49,7 +49,8 @@ class _EditLine {
 }
 
 class InvoiceEditorScreen extends ConsumerStatefulWidget {
-  const InvoiceEditorScreen({super.key});
+  const InvoiceEditorScreen({super.key, this.invoiceId});
+  final String? invoiceId;
   @override
   ConsumerState<InvoiceEditorScreen> createState() =>
       _InvoiceEditorScreenState();
@@ -66,6 +67,49 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
   final List<_EditLine> _lines = [];
   final Set<String> _pulledEntryIds = {};
   bool _saving = false;
+  bool _loading = false;
+
+  bool get _editing => widget.invoiceId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_editing) {
+      _loading = true;
+      _loadExisting(widget.invoiceId!);
+    }
+  }
+
+  Future<void> _loadExisting(String id) async {
+    final repo = ref.read(repositoryProvider);
+    final invoice = await repo.findInvoice(id);
+    if (invoice == null) {
+      if (mounted) setState(() => _loading = false);
+      return;
+    }
+    final lines = await repo.invoiceLines(id);
+    final linkedEntries = await repo.timeEntriesForInvoice(id);
+    if (!mounted) return;
+    setState(() {
+      _clientId = invoice.clientId;
+      _currency = Currency.fromCode(invoice.currency);
+      _language = invoice.language;
+      _issueDate = invoice.issueDate;
+      _dueDate = invoice.dueDate;
+      _poCtrl.text = invoice.purchaseOrder;
+      _notesCtrl.text = invoice.notes;
+      for (final line in lines) {
+        _lines.add(_EditLine(
+          description: line.description,
+          quantity: line.quantity,
+          unitPrice: Money(line.unitPriceMinor, _currency).asMajor,
+          treatment: VatTreatment.byName(line.vatTreatment),
+        )..unit = line.unit);
+      }
+      _pulledEntryIds.addAll(linkedEntries.map((e) => e.id));
+      _loading = false;
+    });
+  }
 
   @override
   void dispose() {
@@ -148,8 +192,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
     setState(() => _saving = true);
     final repo = ref.read(repositoryProvider);
     final totals = _computeTotals();
-    final number = await repo.nextInvoiceNumber();
-    final id = repo.newId();
+    final id = widget.invoiceId ?? repo.newId();
 
     final lineCompanions = <InvoiceLinesCompanion>[];
     for (var i = 0; i < _lines.length; i++) {
@@ -168,26 +211,47 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
       ));
     }
 
-    await repo.createInvoice(
-      invoice: InvoicesCompanion.insert(
+    if (_editing) {
+      await repo.updateInvoiceWithLines(
         id: id,
-        number: number,
-        clientId: _clientId!,
-        issueDate: _issueDate,
-        dueDate: _dueDate,
-        createdAt: DateTime.now(),
-        currency: Value(_currency.code),
-        language: Value(_language),
-        status: Value(InvoiceStatus.draft.name),
-        purchaseOrder: Value(_poCtrl.text.trim()),
-        notes: Value(_notesCtrl.text.trim()),
-        subtotalMinor: Value(totals.net.minorUnits),
-        taxMinor: Value(totals.taxTotal.minorUnits),
-        totalMinor: Value(totals.gross.minorUnits),
-      ),
-      lines: lineCompanions,
-      timeEntryIds: _pulledEntryIds.toList(),
-    );
+        invoice: InvoicesCompanion(
+          clientId: Value(_clientId!),
+          issueDate: Value(_issueDate),
+          dueDate: Value(_dueDate),
+          currency: Value(_currency.code),
+          language: Value(_language),
+          purchaseOrder: Value(_poCtrl.text.trim()),
+          notes: Value(_notesCtrl.text.trim()),
+          subtotalMinor: Value(totals.net.minorUnits),
+          taxMinor: Value(totals.taxTotal.minorUnits),
+          totalMinor: Value(totals.gross.minorUnits),
+        ),
+        lines: lineCompanions,
+        timeEntryIds: _pulledEntryIds.toList(),
+      );
+    } else {
+      final number = await repo.nextInvoiceNumber();
+      await repo.createInvoice(
+        invoice: InvoicesCompanion.insert(
+          id: id,
+          number: number,
+          clientId: _clientId!,
+          issueDate: _issueDate,
+          dueDate: _dueDate,
+          createdAt: DateTime.now(),
+          currency: Value(_currency.code),
+          language: Value(_language),
+          status: Value(InvoiceStatus.draft.name),
+          purchaseOrder: Value(_poCtrl.text.trim()),
+          notes: Value(_notesCtrl.text.trim()),
+          subtotalMinor: Value(totals.net.minorUnits),
+          taxMinor: Value(totals.taxTotal.minorUnits),
+          totalMinor: Value(totals.gross.minorUnits),
+        ),
+        lines: lineCompanions,
+        timeEntryIds: _pulledEntryIds.toList(),
+      );
+    }
 
     if (mounted) context.go('/invoices/$id');
   }
@@ -195,16 +259,31 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
+    final closeTarget =
+        _editing ? '/invoices/${widget.invoiceId}' : '/invoices';
+
+    if (_loading) {
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.close),
+            onPressed: () => context.go(closeTarget),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final fmt = ref.watch(formattersProvider);
     final clients = ref.watch(clientsProvider).value ?? const [];
     final totals = _computeTotals();
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.dashboardQuickInvoice),
+        title: Text(_editing ? l10n.commonEdit : l10n.dashboardQuickInvoice),
         leading: IconButton(
           icon: const Icon(Icons.close),
-          onPressed: () => context.go('/invoices'),
+          onPressed: () => context.go(closeTarget),
         ),
       ),
       bottomNavigationBar: _SaveBar(

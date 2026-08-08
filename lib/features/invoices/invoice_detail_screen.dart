@@ -72,6 +72,11 @@ class InvoiceDetailScreen extends ConsumerWidget {
             ],
           ),
           IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: l10n.commonEdit,
+            onPressed: () => context.go('/invoices/${invoice.id}/edit'),
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () async {
               final ok = await confirmDeleteDialog(

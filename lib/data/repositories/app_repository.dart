@@ -214,12 +214,24 @@ class AppRepository {
             ..orderBy([(t) => OrderingTerm(expression: t.sortOrder)]))
           .get();
 
+  Stream<List<InvoiceLine>> watchInvoiceLines(String invoiceId) =>
+      (db.select(db.invoiceLines)
+            ..where((t) => t.invoiceId.equals(invoiceId))
+            ..orderBy([(t) => OrderingTerm(expression: t.sortOrder)]))
+          .watch();
+
   Future<Invoice?> findInvoice(String id) =>
       (db.select(db.invoices)..where((t) => t.id.equals(id))).getSingleOrNull();
 
   Stream<Invoice?> watchInvoice(String id) =>
       (db.select(db.invoices)..where((t) => t.id.equals(id)))
           .watchSingleOrNull();
+
+  /// Time entries currently billed onto [invoiceId] (used to pre-fill the
+  /// editor when reopening an existing invoice).
+  Future<List<TimeEntry>> timeEntriesForInvoice(String invoiceId) =>
+      (db.select(db.timeEntries)..where((t) => t.invoiceId.equals(invoiceId)))
+          .get();
 
   /// Billable, not-yet-invoiced time entries for a client, oldest first.
   Future<List<TimeEntry>> unbilledEntriesForClient(String clientId) {
@@ -248,6 +260,34 @@ class AppRepository {
         await (db.update(db.timeEntries)
               ..where((t) => t.id.isIn(timeEntryIds)))
             .write(TimeEntriesCompanion(invoiceId: Value(invoice.id.value)));
+      }
+    });
+  }
+
+  /// Updates an existing invoice's fields and replaces its lines wholesale.
+  /// Time entries are fully re-linked from [timeEntryIds] — anything
+  /// previously billed to this invoice but not in that list is released back
+  /// to unbilled, mirroring [createInvoice]'s linking behaviour.
+  Future<void> updateInvoiceWithLines({
+    required String id,
+    required InvoicesCompanion invoice,
+    required List<InvoiceLinesCompanion> lines,
+    required List<String> timeEntryIds,
+  }) async {
+    await db.transaction(() async {
+      await (db.update(db.invoices)..where((t) => t.id.equals(id)))
+          .write(invoice);
+      await (db.delete(db.invoiceLines)..where((t) => t.invoiceId.equals(id)))
+          .go();
+      for (final line in lines) {
+        await db.into(db.invoiceLines).insert(line);
+      }
+      await (db.update(db.timeEntries)..where((t) => t.invoiceId.equals(id)))
+          .write(const TimeEntriesCompanion(invoiceId: Value(null)));
+      if (timeEntryIds.isNotEmpty) {
+        await (db.update(db.timeEntries)
+              ..where((t) => t.id.isIn(timeEntryIds)))
+            .write(TimeEntriesCompanion(invoiceId: Value(id)));
       }
     });
   }
