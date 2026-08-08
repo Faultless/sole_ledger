@@ -46,6 +46,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _c('bic').text = p.bic;
     _c('bank').text = p.bankName;
     _c('prefix').text = p.invoiceNumberPrefix;
+    _c('nextSeq').text = p.nextInvoiceSeq.toString();
     _c('rate').text = p.defaultHourlyRate == 0
         ? ''
         : p.defaultHourlyRate.toString();
@@ -83,6 +84,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       invoiceNumberPrefix: Value(_c('prefix').text.trim().isEmpty
           ? 'INV'
           : _c('prefix').text.trim()),
+      nextInvoiceSeq: _nextSeqValue(),
       defaultCurrency: Value(_currency),
       defaultHourlyRate:
           Value(double.tryParse(_c('rate').text.trim()) ?? 0),
@@ -94,6 +96,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         SnackBar(content: Text(L10n.of(context).commonSave)),
       );
     }
+  }
+
+  /// The "next invoice number" field, parsed defensively — leaves the stored
+  /// sequence untouched (rather than resetting it) if the field is blank or
+  /// not a valid positive integer.
+  Value<int> _nextSeqValue() {
+    final n = int.tryParse(_c('nextSeq').text.trim());
+    return n == null || n < 1 ? const Value.absent() : Value(n);
   }
 
   Future<void> _setLanguage(AppLanguage lang) async {
@@ -351,9 +361,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       Expanded(child: _field('prefix', 'Invoice prefix')),
                       const SizedBox(width: 12),
                       Expanded(
-                          child: _field('rate', 'Default hourly rate',
+                          child: _field('nextSeq', 'Next invoice number',
                               number: true)),
                     ]),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, bottom: 8),
+                      child: Text(
+                        'Used to generate INV-YYYY-#### numbers. Set to 1 to '
+                        'restart numbering.',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                    ),
+                    _field('rate', 'Default hourly rate', number: true),
                   ],
                 ),
               ),
