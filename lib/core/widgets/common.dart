@@ -1,5 +1,34 @@
 import 'package:flutter/material.dart';
 
+/// Shows a Delete/Cancel confirmation dialog and returns whether the user
+/// confirmed. Always pops with the dialog's own `ctx` — using the caller's
+/// context here would pop the wrong Navigator under a [ShellRoute] and hang
+/// the dialog forever.
+Future<bool> confirmDeleteDialog(
+  BuildContext context, {
+  required String message,
+  required String cancelLabel,
+  required String deleteLabel,
+}) async {
+  return await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(cancelLabel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(deleteLabel),
+            ),
+          ],
+        ),
+      ) ??
+      false;
+}
+
 /// A single headline metric card for the dashboard.
 class KpiCard extends StatelessWidget {
   const KpiCard({

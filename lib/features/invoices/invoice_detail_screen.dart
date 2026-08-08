@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
+import '../../core/widgets/common.dart';
 import '../../core/widgets/labels.dart';
 import '../../data/db/database.dart';
 import '../../data/providers.dart';
@@ -73,7 +74,12 @@ class InvoiceDetailScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.delete_outline),
             onPressed: () async {
-              final ok = await _confirmDelete(context, l10n);
+              final ok = await confirmDeleteDialog(
+                context,
+                message: '${l10n.commonDelete}?',
+                cancelLabel: l10n.commonCancel,
+                deleteLabel: l10n.commonDelete,
+              );
               if (ok && context.mounted) {
                 await ref.read(repositoryProvider).deleteInvoice(invoice.id);
                 if (context.mounted) context.go('/invoices');
@@ -167,23 +173,6 @@ class InvoiceDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<bool> _confirmDelete(BuildContext context, L10n l10n) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (_) => AlertDialog(
-            content: Text('${l10n.commonDelete}?'),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: Text(l10n.commonCancel)),
-              FilledButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: Text(l10n.commonDelete)),
-            ],
-          ),
-        ) ??
-        false;
-  }
 }
 
 class _StatusBanner extends StatelessWidget {
