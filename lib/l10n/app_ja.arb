@@ -58,6 +58,7 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "commonToday": "今日",
+  "commonRefresh": "更新",
 
   "dashboardHoursThisMonth": "今月の稼働時間",
   "dashboardUnbilled": "未請求",

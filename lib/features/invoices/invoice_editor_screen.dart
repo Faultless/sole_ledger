@@ -22,6 +22,7 @@ class _EditLine {
     required double quantity,
     required double unitPrice,
     required this.treatment,
+    this.fromTimeEntries = false,
   })  : descCtrl = TextEditingController(text: description),
         qtyCtrl = TextEditingController(text: _trim(quantity)),
         priceCtrl = TextEditingController(text: _trim(unitPrice));
@@ -32,6 +33,10 @@ class _EditLine {
   String description;
   VatTreatment treatment;
   String unit = 'hours';
+  /// Whether this line was generated from pulled time entries (vs. typed in
+  /// by hand) — lets "refresh" regenerate time-tracked lines while leaving
+  /// manual ones alone.
+  bool fromTimeEntries;
 
   double get quantity =>
       double.tryParse(qtyCtrl.text.replaceAll(',', '.').trim()) ?? 0;
@@ -68,6 +73,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
   final Set<String> _pulledEntryIds = {};
   bool _saving = false;
   bool _loading = false;
+  bool _refreshing = false;
 
   bool get _editing => widget.invoiceId != null;
 
@@ -104,6 +110,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
           quantity: line.quantity,
           unitPrice: Money(line.unitPriceMinor, _currency).asMajor,
           treatment: VatTreatment.byName(line.vatTreatment),
+          fromTimeEntries: line.fromTimeEntries,
         )..unit = line.unit);
       }
       _pulledEntryIds.addAll(linkedEntries.map((e) => e.id));
@@ -153,10 +160,46 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
           quantity: minutes / 60.0,
           unitPrice: project?.hourlyRate ?? clientRate,
           treatment: treatment,
+          fromTimeEntries: true,
         ));
         _pulledEntryIds.addAll(group.map((e) => e.id));
       });
     });
+  }
+
+  /// Re-pulls time entries for the current client — picking up hours logged
+  /// since this invoice was created/last refreshed — and regenerates the
+  /// time-tracked lines from scratch. Lines added by hand are left as-is.
+  Future<void> _refresh() async {
+    final clientId = _clientId;
+    if (clientId == null || _refreshing) return;
+    setState(() => _refreshing = true);
+    final repo = ref.read(repositoryProvider);
+    final client = (ref.read(clientsProvider).value ?? const <Client>[])
+        .firstWhereOrNull((c) => c.id == clientId);
+    if (client == null) {
+      setState(() => _refreshing = false);
+      return;
+    }
+    final profile = ref.read(businessProfileProvider).value;
+    final entries = await repo.entriesAvailableForInvoice(clientId,
+        invoiceId: widget.invoiceId);
+    final projects = await repo.projectsForClient(clientId);
+    if (!mounted) return;
+
+    setState(() {
+      final stale = _lines.where((l) => l.fromTimeEntries).toList();
+      for (final l in stale) {
+        l.dispose();
+      }
+      _lines.removeWhere((l) => l.fromTimeEntries);
+      _pulledEntryIds.clear();
+    });
+    if (entries.isNotEmpty) {
+      _pullEntries(
+          entries, client, profile, {for (final p in projects) p.id: p});
+    }
+    if (mounted) setState(() => _refreshing = false);
   }
 
   void _addBlankLine() {
@@ -208,6 +251,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
         unit: Value(l.unit),
         vatTreatment: Value(l.treatment.name),
         sortOrder: Value(i),
+        fromTimeEntries: Value(l.fromTimeEntries),
       ));
     }
 
@@ -285,6 +329,19 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
           icon: const Icon(Icons.close),
           onPressed: () => context.go(closeTarget),
         ),
+        actions: [
+          IconButton(
+            icon: _refreshing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            tooltip: l10n.commonRefresh,
+            onPressed: _clientId == null || _refreshing ? null : _refresh,
+          ),
+        ],
       ),
       bottomNavigationBar: _SaveBar(
         total: fmt.money(totals.gross),

@@ -162,6 +162,9 @@ class L10nEn extends L10n {
   String get commonToday => 'Today';
 
   @override
+  String get commonRefresh => 'Refresh';
+
+  @override
   String get dashboardHoursThisMonth => 'Hours this month';
 
   @override

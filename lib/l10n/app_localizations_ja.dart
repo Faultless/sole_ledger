@@ -160,6 +160,9 @@ class L10nJa extends L10n {
   String get commonToday => '今日';
 
   @override
+  String get commonRefresh => '更新';
+
+  @override
   String get dashboardHoursThisMonth => '今月の稼働時間';
 
   @override

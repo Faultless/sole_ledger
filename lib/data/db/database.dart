@@ -162,6 +162,11 @@ class InvoiceLines extends Table {
   TextColumn get vatTreatment =>
       text().withDefault(const Constant('reverseChargeEu'))();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  /// Whether this line was generated from pulled time entries rather than
+  /// typed in by hand — lets the editor's "refresh" regenerate time-tracked
+  /// lines from current data while leaving manual lines untouched.
+  BoolColumn get fromTimeEntries =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -216,7 +221,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -236,6 +241,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 6) {
             await m.addColumn(businessProfiles, businessProfiles.themeMode);
+          }
+          if (from < 7) {
+            await m.addColumn(invoiceLines, invoiceLines.fromTimeEntries);
           }
         },
         beforeOpen: (details) async {
@@ -270,6 +278,11 @@ class AppDatabase extends _$AppDatabase {
             definition: "TEXT NOT NULL DEFAULT 'system'",
           );
           await _ensureTable('assets', assets);
+          await _ensureColumn(
+            table: 'invoice_lines',
+            column: 'from_time_entries',
+            definition: 'BOOLEAN NOT NULL DEFAULT 0',
+          );
         },
       );
 

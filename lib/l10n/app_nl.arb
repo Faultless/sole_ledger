@@ -58,6 +58,7 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "commonToday": "Vandaag",
+  "commonRefresh": "Vernieuwen",
 
   "dashboardHoursThisMonth": "Uren deze maand",
   "dashboardUnbilled": "Nog te factureren",

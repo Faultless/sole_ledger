@@ -244,6 +244,24 @@ class AppRepository {
         .get();
   }
 
+  /// Billable time entries for a client eligible to sit on [invoiceId]: not
+  /// yet invoiced anywhere, or already linked to this very invoice. Used by
+  /// the invoice editor's "refresh" action to re-pull the current picture
+  /// (newly logged hours included) without losing entries the invoice
+  /// already claims.
+  Future<List<TimeEntry>> entriesAvailableForInvoice(String clientId,
+      {String? invoiceId}) {
+    return (db.select(db.timeEntries)
+          ..where((t) =>
+              t.clientId.equals(clientId) &
+              t.billable.equals(true) &
+              (invoiceId == null
+                  ? t.invoiceId.isNull()
+                  : (t.invoiceId.isNull() | t.invoiceId.equals(invoiceId))))
+          ..orderBy([(t) => OrderingTerm(expression: t.date)]))
+        .get();
+  }
+
   /// Creates an invoice with its lines in one transaction and links the given
   /// time entries to it (so they no longer count as unbilled).
   Future<void> createInvoice({

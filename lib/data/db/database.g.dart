@@ -4961,6 +4961,21 @@ class $InvoiceLinesTable extends InvoiceLines
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _fromTimeEntriesMeta = const VerificationMeta(
+    'fromTimeEntries',
+  );
+  @override
+  late final GeneratedColumn<bool> fromTimeEntries = GeneratedColumn<bool>(
+    'from_time_entries',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("from_time_entries" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -4971,6 +4986,7 @@ class $InvoiceLinesTable extends InvoiceLines
     unitPriceMinor,
     vatTreatment,
     sortOrder,
+    fromTimeEntries,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -5046,6 +5062,15 @@ class $InvoiceLinesTable extends InvoiceLines
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('from_time_entries')) {
+      context.handle(
+        _fromTimeEntriesMeta,
+        fromTimeEntries.isAcceptableOrUnknown(
+          data['from_time_entries']!,
+          _fromTimeEntriesMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -5087,6 +5112,10 @@ class $InvoiceLinesTable extends InvoiceLines
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      fromTimeEntries: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}from_time_entries'],
+      )!,
     );
   }
 
@@ -5105,6 +5134,11 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
   final int unitPriceMinor;
   final String vatTreatment;
   final int sortOrder;
+
+  /// Whether this line was generated from pulled time entries rather than
+  /// typed in by hand — lets the editor's "refresh" regenerate time-tracked
+  /// lines from current data while leaving manual lines untouched.
+  final bool fromTimeEntries;
   const InvoiceLine({
     required this.id,
     required this.invoiceId,
@@ -5114,6 +5148,7 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
     required this.unitPriceMinor,
     required this.vatTreatment,
     required this.sortOrder,
+    required this.fromTimeEntries,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -5126,6 +5161,7 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
     map['unit_price_minor'] = Variable<int>(unitPriceMinor);
     map['vat_treatment'] = Variable<String>(vatTreatment);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['from_time_entries'] = Variable<bool>(fromTimeEntries);
     return map;
   }
 
@@ -5139,6 +5175,7 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
       unitPriceMinor: Value(unitPriceMinor),
       vatTreatment: Value(vatTreatment),
       sortOrder: Value(sortOrder),
+      fromTimeEntries: Value(fromTimeEntries),
     );
   }
 
@@ -5156,6 +5193,7 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
       unitPriceMinor: serializer.fromJson<int>(json['unitPriceMinor']),
       vatTreatment: serializer.fromJson<String>(json['vatTreatment']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      fromTimeEntries: serializer.fromJson<bool>(json['fromTimeEntries']),
     );
   }
   @override
@@ -5170,6 +5208,7 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
       'unitPriceMinor': serializer.toJson<int>(unitPriceMinor),
       'vatTreatment': serializer.toJson<String>(vatTreatment),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'fromTimeEntries': serializer.toJson<bool>(fromTimeEntries),
     };
   }
 
@@ -5182,6 +5221,7 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
     int? unitPriceMinor,
     String? vatTreatment,
     int? sortOrder,
+    bool? fromTimeEntries,
   }) => InvoiceLine(
     id: id ?? this.id,
     invoiceId: invoiceId ?? this.invoiceId,
@@ -5191,6 +5231,7 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
     unitPriceMinor: unitPriceMinor ?? this.unitPriceMinor,
     vatTreatment: vatTreatment ?? this.vatTreatment,
     sortOrder: sortOrder ?? this.sortOrder,
+    fromTimeEntries: fromTimeEntries ?? this.fromTimeEntries,
   );
   InvoiceLine copyWithCompanion(InvoiceLinesCompanion data) {
     return InvoiceLine(
@@ -5208,6 +5249,9 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
           ? data.vatTreatment.value
           : this.vatTreatment,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      fromTimeEntries: data.fromTimeEntries.present
+          ? data.fromTimeEntries.value
+          : this.fromTimeEntries,
     );
   }
 
@@ -5221,7 +5265,8 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
           ..write('unit: $unit, ')
           ..write('unitPriceMinor: $unitPriceMinor, ')
           ..write('vatTreatment: $vatTreatment, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('fromTimeEntries: $fromTimeEntries')
           ..write(')'))
         .toString();
   }
@@ -5236,6 +5281,7 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
     unitPriceMinor,
     vatTreatment,
     sortOrder,
+    fromTimeEntries,
   );
   @override
   bool operator ==(Object other) =>
@@ -5248,7 +5294,8 @@ class InvoiceLine extends DataClass implements Insertable<InvoiceLine> {
           other.unit == this.unit &&
           other.unitPriceMinor == this.unitPriceMinor &&
           other.vatTreatment == this.vatTreatment &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.fromTimeEntries == this.fromTimeEntries);
 }
 
 class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
@@ -5260,6 +5307,7 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
   final Value<int> unitPriceMinor;
   final Value<String> vatTreatment;
   final Value<int> sortOrder;
+  final Value<bool> fromTimeEntries;
   final Value<int> rowid;
   const InvoiceLinesCompanion({
     this.id = const Value.absent(),
@@ -5270,6 +5318,7 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
     this.unitPriceMinor = const Value.absent(),
     this.vatTreatment = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.fromTimeEntries = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   InvoiceLinesCompanion.insert({
@@ -5281,6 +5330,7 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
     required int unitPriceMinor,
     this.vatTreatment = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.fromTimeEntries = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        invoiceId = Value(invoiceId),
@@ -5295,6 +5345,7 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
     Expression<int>? unitPriceMinor,
     Expression<String>? vatTreatment,
     Expression<int>? sortOrder,
+    Expression<bool>? fromTimeEntries,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -5306,6 +5357,7 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
       if (unitPriceMinor != null) 'unit_price_minor': unitPriceMinor,
       if (vatTreatment != null) 'vat_treatment': vatTreatment,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (fromTimeEntries != null) 'from_time_entries': fromTimeEntries,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -5319,6 +5371,7 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
     Value<int>? unitPriceMinor,
     Value<String>? vatTreatment,
     Value<int>? sortOrder,
+    Value<bool>? fromTimeEntries,
     Value<int>? rowid,
   }) {
     return InvoiceLinesCompanion(
@@ -5330,6 +5383,7 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
       unitPriceMinor: unitPriceMinor ?? this.unitPriceMinor,
       vatTreatment: vatTreatment ?? this.vatTreatment,
       sortOrder: sortOrder ?? this.sortOrder,
+      fromTimeEntries: fromTimeEntries ?? this.fromTimeEntries,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -5361,6 +5415,9 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (fromTimeEntries.present) {
+      map['from_time_entries'] = Variable<bool>(fromTimeEntries.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -5378,6 +5435,7 @@ class InvoiceLinesCompanion extends UpdateCompanion<InvoiceLine> {
           ..write('unitPriceMinor: $unitPriceMinor, ')
           ..write('vatTreatment: $vatTreatment, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('fromTimeEntries: $fromTimeEntries, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -9349,6 +9407,7 @@ typedef $$InvoiceLinesTableCreateCompanionBuilder =
       required int unitPriceMinor,
       Value<String> vatTreatment,
       Value<int> sortOrder,
+      Value<bool> fromTimeEntries,
       Value<int> rowid,
     });
 typedef $$InvoiceLinesTableUpdateCompanionBuilder =
@@ -9361,6 +9420,7 @@ typedef $$InvoiceLinesTableUpdateCompanionBuilder =
       Value<int> unitPriceMinor,
       Value<String> vatTreatment,
       Value<int> sortOrder,
+      Value<bool> fromTimeEntries,
       Value<int> rowid,
     });
 
@@ -9427,6 +9487,11 @@ class $$InvoiceLinesTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get fromTimeEntries => $composableBuilder(
+    column: $table.fromTimeEntries,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9498,6 +9563,11 @@ class $$InvoiceLinesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get fromTimeEntries => $composableBuilder(
+    column: $table.fromTimeEntries,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$InvoicesTableOrderingComposer get invoiceId {
     final $$InvoicesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -9557,6 +9627,11 @@ class $$InvoiceLinesTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get fromTimeEntries => $composableBuilder(
+    column: $table.fromTimeEntries,
+    builder: (column) => column,
+  );
 
   $$InvoicesTableAnnotationComposer get invoiceId {
     final $$InvoicesTableAnnotationComposer composer = $composerBuilder(
@@ -9618,6 +9693,7 @@ class $$InvoiceLinesTableTableManager
                 Value<int> unitPriceMinor = const Value.absent(),
                 Value<String> vatTreatment = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> fromTimeEntries = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => InvoiceLinesCompanion(
                 id: id,
@@ -9628,6 +9704,7 @@ class $$InvoiceLinesTableTableManager
                 unitPriceMinor: unitPriceMinor,
                 vatTreatment: vatTreatment,
                 sortOrder: sortOrder,
+                fromTimeEntries: fromTimeEntries,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -9640,6 +9717,7 @@ class $$InvoiceLinesTableTableManager
                 required int unitPriceMinor,
                 Value<String> vatTreatment = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> fromTimeEntries = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => InvoiceLinesCompanion.insert(
                 id: id,
@@ -9650,6 +9728,7 @@ class $$InvoiceLinesTableTableManager
                 unitPriceMinor: unitPriceMinor,
                 vatTreatment: vatTreatment,
                 sortOrder: sortOrder,
+                fromTimeEntries: fromTimeEntries,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

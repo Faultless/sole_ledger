@@ -58,6 +58,7 @@
     "placeholders": { "count": { "type": "int" } }
   },
   "commonToday": "Today",
+  "commonRefresh": "Refresh",
 
   "dashboardHoursThisMonth": "Hours this month",
   "dashboardUnbilled": "Unbilled",

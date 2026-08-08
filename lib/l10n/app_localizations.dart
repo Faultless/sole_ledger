@@ -393,6 +393,12 @@ abstract class L10n {
   /// **'Today'**
   String get commonToday;
 
+  /// No description provided for @commonRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get commonRefresh;
+
   /// No description provided for @dashboardHoursThisMonth.
   ///
   /// In en, this message translates to:
