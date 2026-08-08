@@ -46,6 +46,17 @@
   "commonExpenses": "Kosten",
   "commonResult": "Resultaat",
   "commonEmpty": "Nog niets hier",
+  "commonSelect": "Selecteren",
+  "commonSelectAll": "Alles selecteren",
+  "commonClearSelection": "Selectie wissen",
+  "commonSelectedCount": "{count} geselecteerd",
+  "@commonSelectedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "commonDeleteCountConfirm": "{count} items verwijderen? Dit kan niet ongedaan worden gemaakt.",
+  "@commonDeleteCountConfirm": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "dashboardHoursThisMonth": "Uren deze maand",
   "dashboardUnbilled": "Nog te factureren",

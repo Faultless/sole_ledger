@@ -4,18 +4,66 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
+import '../../core/widgets/common.dart';
 import '../../data/db/database.dart';
 import '../../data/providers.dart';
 import '../../domain/tax/depreciation.dart';
+import '../../l10n/app_localizations.dart';
 import '../shell/app_shell.dart';
 
 /// Fixed-asset register (固定資産台帳): assets whose cost is deducted over time
 /// via depreciation, feeding the tax set-aside and annual report.
-class AssetsScreen extends ConsumerWidget {
+class AssetsScreen extends ConsumerStatefulWidget {
   const AssetsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AssetsScreen> createState() => _AssetsScreenState();
+}
+
+class _AssetsScreenState extends ConsumerState<AssetsScreen> {
+  bool _selecting = false;
+  final Set<String> _selected = {};
+
+  void _enterSelection(String id) {
+    setState(() {
+      _selecting = true;
+      _selected.add(id);
+    });
+  }
+
+  void _toggle(String id) {
+    setState(() {
+      if (_selected.contains(id)) {
+        _selected.remove(id);
+        if (_selected.isEmpty) _selecting = false;
+      } else {
+        _selected.add(id);
+      }
+    });
+  }
+
+  void _exitSelection() {
+    setState(() {
+      _selecting = false;
+      _selected.clear();
+    });
+  }
+
+  Future<void> _deleteSelected(L10n l10n) async {
+    final ok = await confirmDeleteDialog(
+      context,
+      message: l10n.commonDeleteCountConfirm(_selected.length),
+      cancelLabel: l10n.commonCancel,
+      deleteLabel: l10n.commonDelete,
+    );
+    if (!ok || !mounted) return;
+    await ref.read(repositoryProvider).deleteAssets(_selected.toList());
+    if (mounted) _exitSelection();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = L10n.of(context);
     final fmt = ref.watch(formattersProvider);
     final assets = ref.watch(assetsProvider).value ?? const [];
     final year = DateTime.now().year;
@@ -40,30 +88,65 @@ class AssetsScreen extends ConsumerWidget {
         .join(' · ');
 
     return Scaffold(
-      appBar: AppBar(
-        leading: navLeading(context),
-        title: const Text('Fixed assets'),
-        bottom: byCur.isEmpty
-            ? null
-            : PreferredSize(
-                preferredSize: const Size.fromHeight(34),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                    child: Text('$year depreciation: $headerText',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant)),
-                  ),
-                ),
+      appBar: _selecting
+          ? AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _exitSelection,
               ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEditor(context, null),
-        icon: const Icon(Icons.add),
-        label: const Text('Add asset'),
-      ),
+              title: Text(l10n.commonSelectedCount(_selected.length)),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.select_all),
+                  tooltip: l10n.commonSelectAll,
+                  onPressed: () =>
+                      setState(() => _selected.addAll(assets.map((a) => a.id))),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed:
+                      _selected.isEmpty ? null : () => _deleteSelected(l10n),
+                ),
+              ],
+            )
+          : AppBar(
+              leading: navLeading(context),
+              title: const Text('Fixed assets'),
+              actions: [
+                if (assets.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.checklist),
+                    tooltip: l10n.commonSelect,
+                    onPressed: () => setState(() => _selecting = true),
+                  ),
+              ],
+              bottom: byCur.isEmpty
+                  ? null
+                  : PreferredSize(
+                      preferredSize: const Size.fromHeight(34),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                          child: Text('$year depreciation: $headerText',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
+                        ),
+                      ),
+                    ),
+            ),
+      floatingActionButton: _selecting
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _openEditor(context, null),
+              icon: const Icon(Icons.add),
+              label: const Text('Add asset'),
+            ),
       body: SafeArea(
         child: assets.isEmpty
             ? const _AssetsEmpty()
@@ -90,6 +173,53 @@ class AssetsScreen extends ConsumerWidget {
                     usefulLifeYears: a.usefulLifeYears,
                     year: year,
                   );
+                  final selected = _selected.contains(a.id);
+                  final tile = ListTile(
+                    leading: _selecting
+                        ? Checkbox(
+                            value: selected,
+                            onChanged: (_) => _toggle(a.id),
+                          )
+                        : CircleAvatar(
+                            backgroundColor: Theme.of(context)
+                                .colorScheme
+                                .secondaryContainer,
+                            child:
+                                const Icon(Icons.inventory_2_outlined, size: 18),
+                          ),
+                    title: Text(a.description.isEmpty ? 'Asset' : a.description),
+                    subtitle: Text([
+                      fmt.money(Money(a.costMinor, c)),
+                      _methodShort(method),
+                      '${a.acquisitionDate.year}',
+                      if (a.businessUsePercent != 100) '${a.businessUsePercent}%',
+                    ].join(' · ')),
+                    trailing: _selecting
+                        ? null
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('$year: ${fmt.money(Money(thisYear, c))}',
+                                  style: Theme.of(context).textTheme.titleSmall),
+                              Text('book ${fmt.money(Money(book, c))}',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodySmall
+                                      ?.copyWith(
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant)),
+                            ],
+                          ),
+                    selected: selected,
+                    onTap: _selecting
+                        ? () => _toggle(a.id)
+                        : () => _openEditor(context, a),
+                    onLongPress:
+                        _selecting ? null : () => _enterSelection(a.id),
+                  );
+                  if (_selecting) return tile;
                   return Dismissible(
                     key: ValueKey(a.id),
                     direction: DismissDirection.endToStart,
@@ -101,37 +231,7 @@ class AssetsScreen extends ConsumerWidget {
                     ),
                     onDismissed: (_) =>
                         ref.read(repositoryProvider).deleteAsset(a.id),
-                    child: ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor:
-                            Theme.of(context).colorScheme.secondaryContainer,
-                        child: const Icon(Icons.inventory_2_outlined, size: 18),
-                      ),
-                      title: Text(a.description.isEmpty ? 'Asset' : a.description),
-                      subtitle: Text([
-                        fmt.money(Money(a.costMinor, c)),
-                        _methodShort(method),
-                        '${a.acquisitionDate.year}',
-                        if (a.businessUsePercent != 100) '${a.businessUsePercent}%',
-                      ].join(' · ')),
-                      trailing: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('$year: ${fmt.money(Money(thisYear, c))}',
-                              style: Theme.of(context).textTheme.titleSmall),
-                          Text('book ${fmt.money(Money(book, c))}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant)),
-                        ],
-                      ),
-                      onTap: () => _openEditor(context, a),
-                    ),
+                    child: tile,
                   );
                 },
               ),

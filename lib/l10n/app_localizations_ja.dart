@@ -138,6 +138,25 @@ class L10nJa extends L10n {
   String get commonEmpty => 'まだ登録がありません';
 
   @override
+  String get commonSelect => '選択';
+
+  @override
+  String get commonSelectAll => 'すべて選択';
+
+  @override
+  String get commonClearSelection => '選択を解除';
+
+  @override
+  String commonSelectedCount(int count) {
+    return '$count件選択中';
+  }
+
+  @override
+  String commonDeleteCountConfirm(int count) {
+    return '$count件を削除しますか?元に戻せません。';
+  }
+
+  @override
   String get dashboardHoursThisMonth => '今月の稼働時間';
 
   @override

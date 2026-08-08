@@ -140,6 +140,25 @@ class L10nNl extends L10n {
   String get commonEmpty => 'Nog niets hier';
 
   @override
+  String get commonSelect => 'Selecteren';
+
+  @override
+  String get commonSelectAll => 'Alles selecteren';
+
+  @override
+  String get commonClearSelection => 'Selectie wissen';
+
+  @override
+  String commonSelectedCount(int count) {
+    return '$count geselecteerd';
+  }
+
+  @override
+  String commonDeleteCountConfirm(int count) {
+    return '$count items verwijderen? Dit kan niet ongedaan worden gemaakt.';
+  }
+
+  @override
   String get dashboardHoursThisMonth => 'Uren deze maand';
 
   @override

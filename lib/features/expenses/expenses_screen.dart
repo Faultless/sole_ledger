@@ -17,11 +17,56 @@ import '../shell/app_shell.dart';
 import 'receipt_image.dart';
 import 'receipt_ocr.dart';
 
-class ExpensesScreen extends ConsumerWidget {
+class ExpensesScreen extends ConsumerStatefulWidget {
   const ExpensesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExpensesScreen> createState() => _ExpensesScreenState();
+}
+
+class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
+  bool _selecting = false;
+  final Set<String> _selected = {};
+
+  void _enterSelection(String id) {
+    setState(() {
+      _selecting = true;
+      _selected.add(id);
+    });
+  }
+
+  void _toggle(String id) {
+    setState(() {
+      if (_selected.contains(id)) {
+        _selected.remove(id);
+        if (_selected.isEmpty) _selecting = false;
+      } else {
+        _selected.add(id);
+      }
+    });
+  }
+
+  void _exitSelection() {
+    setState(() {
+      _selecting = false;
+      _selected.clear();
+    });
+  }
+
+  Future<void> _deleteSelected(L10n l10n) async {
+    final ok = await confirmDeleteDialog(
+      context,
+      message: l10n.commonDeleteCountConfirm(_selected.length),
+      cancelLabel: l10n.commonCancel,
+      deleteLabel: l10n.commonDelete,
+    );
+    if (!ok || !mounted) return;
+    await ref.read(repositoryProvider).deleteExpenses(_selected.toList());
+    if (mounted) _exitSelection();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final l10n = L10n.of(context);
     final lang = ref.watch(appLanguageProvider).code;
     final fmt = ref.watch(formattersProvider);
@@ -45,37 +90,71 @@ class ExpensesScreen extends ConsumerWidget {
         ytd.entries.map((e) => fmt.money(Money(e.value, e.key))).join(' · ');
 
     return Scaffold(
-      appBar: AppBar(
-        leading: navLeading(context),
-        title: Text(l10n.navExpenses),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.inventory_2_outlined),
-            tooltip: 'Fixed assets',
-            onPressed: () => context.go('/assets'),
-          ),
-        ],
-        bottom: ytd.isEmpty
-            ? null
-            : PreferredSize(
-                preferredSize: const Size.fromHeight(34),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                    child: Text('${now.year} · ${l10n.expenseDeductible}: $ytdText',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant)),
-                  ),
-                ),
+      appBar: _selecting
+          ? AppBar(
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _exitSelection,
               ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openEditor(context, null),
-        icon: const Icon(Icons.add),
-        label: Text(l10n.commonAdd),
-      ),
+              title: Text(l10n.commonSelectedCount(_selected.length)),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.select_all),
+                  tooltip: l10n.commonSelectAll,
+                  onPressed: () => setState(
+                      () => _selected.addAll(expenses.map((e) => e.id))),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline),
+                  onPressed:
+                      _selected.isEmpty ? null : () => _deleteSelected(l10n),
+                ),
+              ],
+            )
+          : AppBar(
+              leading: navLeading(context),
+              title: Text(l10n.navExpenses),
+              actions: [
+                if (expenses.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.checklist),
+                    tooltip: l10n.commonSelect,
+                    onPressed: () => setState(() => _selecting = true),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.inventory_2_outlined),
+                  tooltip: 'Fixed assets',
+                  onPressed: () => context.go('/assets'),
+                ),
+              ],
+              bottom: ytd.isEmpty
+                  ? null
+                  : PreferredSize(
+                      preferredSize: const Size.fromHeight(34),
+                      child: Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                          child: Text(
+                              '${now.year} · ${l10n.expenseDeductible}: $ytdText',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant)),
+                        ),
+                      ),
+                    ),
+            ),
+      floatingActionButton: _selecting
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _openEditor(context, null),
+              icon: const Icon(Icons.add),
+              label: Text(l10n.commonAdd),
+            ),
       body: SafeArea(
         child: expenses.isEmpty
             ? EmptyState(icon: Icons.payments_outlined, message: l10n.commonEmpty)
@@ -87,6 +166,46 @@ class ExpensesScreen extends ConsumerWidget {
                   final e = expenses[i];
                   final currency = Currency.fromCode(e.currency);
                   final cat = expenseCategoryByCode(e.category);
+                  final selected = _selected.contains(e.id);
+                  final tile = ListTile(
+                    leading: _selecting
+                        ? Checkbox(
+                            value: selected,
+                            onChanged: (_) => _toggle(e.id),
+                          )
+                        : e.receiptImage != null
+                            ? ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.memory(e.receiptImage!,
+                                    width: 40, height: 40, fit: BoxFit.cover),
+                              )
+                            : CircleAvatar(
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .secondaryContainer,
+                                child: Icon(_categoryIcon(e.category), size: 18),
+                              ),
+                    title: Text(e.description.isEmpty
+                        ? cat.labelFor(lang)
+                        : e.description),
+                    subtitle: Text([
+                      cat.labelFor(lang),
+                      fmt.date(e.date),
+                      if (e.businessUsePercent != 100) '${e.businessUsePercent}%',
+                      if (!e.deductible) '${l10n.expenseDeductible}: —',
+                    ].join(' · ')),
+                    trailing: _selecting
+                        ? null
+                        : Text(fmt.money(Money(e.amountMinor, currency)),
+                            style: Theme.of(context).textTheme.titleMedium),
+                    selected: selected,
+                    onTap: _selecting
+                        ? () => _toggle(e.id)
+                        : () => _openEditor(context, e),
+                    onLongPress:
+                        _selecting ? null : () => _enterSelection(e.id),
+                  );
+                  if (_selecting) return tile;
                   return Dismissible(
                     key: ValueKey(e.id),
                     direction: DismissDirection.endToStart,
@@ -98,31 +217,7 @@ class ExpensesScreen extends ConsumerWidget {
                     ),
                     onDismissed: (_) =>
                         ref.read(repositoryProvider).deleteExpense(e.id),
-                    child: ListTile(
-                      leading: e.receiptImage != null
-                          ? ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.memory(e.receiptImage!,
-                                  width: 40, height: 40, fit: BoxFit.cover),
-                            )
-                          : CircleAvatar(
-                              backgroundColor: Theme.of(context)
-                                  .colorScheme
-                                  .secondaryContainer,
-                              child: Icon(_categoryIcon(e.category), size: 18),
-                            ),
-                      title: Text(
-                          e.description.isEmpty ? cat.labelFor(lang) : e.description),
-                      subtitle: Text([
-                        cat.labelFor(lang),
-                        fmt.date(e.date),
-                        if (e.businessUsePercent != 100) '${e.businessUsePercent}%',
-                        if (!e.deductible) '${l10n.expenseDeductible}: —',
-                      ].join(' · ')),
-                      trailing: Text(fmt.money(Money(e.amountMinor, currency)),
-                          style: Theme.of(context).textTheme.titleMedium),
-                      onTap: () => _openEditor(context, e),
-                    ),
+                    child: tile,
                   );
                 },
               ),

@@ -357,6 +357,36 @@ abstract class L10n {
   /// **'Nothing here yet'**
   String get commonEmpty;
 
+  /// No description provided for @commonSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get commonSelect;
+
+  /// No description provided for @commonSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get commonSelectAll;
+
+  /// No description provided for @commonClearSelection.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear selection'**
+  String get commonClearSelection;
+
+  /// No description provided for @commonSelectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String commonSelectedCount(int count);
+
+  /// No description provided for @commonDeleteCountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {count} items? This can\'t be undone.'**
+  String commonDeleteCountConfirm(int count);
+
   /// No description provided for @dashboardHoursThisMonth.
   ///
   /// In en, this message translates to:

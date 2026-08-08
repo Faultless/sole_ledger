@@ -107,6 +107,11 @@ class AppRepository {
   Future<void> deleteExpense(String id) =>
       (db.delete(db.expenses)..where((t) => t.id.equals(id))).go();
 
+  Future<void> deleteExpenses(List<String> ids) {
+    if (ids.isEmpty) return Future.value();
+    return (db.delete(db.expenses)..where((t) => t.id.isIn(ids))).go();
+  }
+
   // --- Fixed assets (depreciation) -----------------------------------------
 
   Stream<List<Asset>> watchAssets() => (db.select(db.assets)
@@ -123,6 +128,11 @@ class AppRepository {
 
   Future<void> deleteAsset(String id) =>
       (db.delete(db.assets)..where((t) => t.id.equals(id))).go();
+
+  Future<void> deleteAssets(List<String> ids) {
+    if (ids.isEmpty) return Future.value();
+    return (db.delete(db.assets)..where((t) => t.id.isIn(ids))).go();
+  }
 
   // --- Data management -----------------------------------------------------
 
@@ -156,6 +166,11 @@ class AppRepository {
 
   Future<void> deleteTimeEntry(String id) =>
       (db.delete(db.timeEntries)..where((t) => t.id.equals(id))).go();
+
+  Future<void> deleteTimeEntries(List<String> ids) {
+    if (ids.isEmpty) return Future.value();
+    return (db.delete(db.timeEntries)..where((t) => t.id.isIn(ids))).go();
+  }
 
   /// Sum of billable, uninvoiced minutes across all time (for the dashboard).
   Stream<int> watchUnbilledMinutes() {
@@ -296,6 +311,19 @@ class AppRepository {
       await (db.delete(db.invoiceLines)..where((t) => t.invoiceId.equals(id)))
           .go();
       await (db.delete(db.invoices)..where((t) => t.id.equals(id))).go();
+    });
+  }
+
+  /// Deletes several invoices at once, releasing their time entries back to
+  /// unbilled. Same invariants as [deleteInvoice], batched into one transaction.
+  Future<void> deleteInvoices(List<String> ids) async {
+    if (ids.isEmpty) return;
+    await db.transaction(() async {
+      await (db.update(db.timeEntries)..where((t) => t.invoiceId.isIn(ids)))
+          .write(const TimeEntriesCompanion(invoiceId: Value(null)));
+      await (db.delete(db.invoiceLines)..where((t) => t.invoiceId.isIn(ids)))
+          .go();
+      await (db.delete(db.invoices)..where((t) => t.id.isIn(ids))).go();
     });
   }
 

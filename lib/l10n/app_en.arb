@@ -46,6 +46,17 @@
   "commonExpenses": "Expenses",
   "commonResult": "Result",
   "commonEmpty": "Nothing here yet",
+  "commonSelect": "Select",
+  "commonSelectAll": "Select all",
+  "commonClearSelection": "Clear selection",
+  "commonSelectedCount": "{count} selected",
+  "@commonSelectedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "commonDeleteCountConfirm": "Delete {count} items? This can't be undone.",
+  "@commonDeleteCountConfirm": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "dashboardHoursThisMonth": "Hours this month",
   "dashboardUnbilled": "Unbilled",

@@ -46,6 +46,17 @@
   "commonExpenses": "経費",
   "commonResult": "損益",
   "commonEmpty": "まだ登録がありません",
+  "commonSelect": "選択",
+  "commonSelectAll": "すべて選択",
+  "commonClearSelection": "選択を解除",
+  "commonSelectedCount": "{count}件選択中",
+  "@commonSelectedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "commonDeleteCountConfirm": "{count}件を削除しますか?元に戻せません。",
+  "@commonDeleteCountConfirm": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "dashboardHoursThisMonth": "今月の稼働時間",
   "dashboardUnbilled": "未請求",
