@@ -264,6 +264,9 @@ class L10nNl extends L10n {
   String get invoiceDueDate => 'Vervaldatum';
 
   @override
+  String get invoiceDueDateEnabled => 'Vervaldatum instellen';
+
+  @override
   String get invoiceBillTo => 'Factuuradres';
 
   @override
@@ -294,6 +297,9 @@ class L10nNl extends L10n {
 
   @override
   String get invoiceSignature => 'Handtekening';
+
+  @override
+  String get invoiceSignatureClient => 'Handtekening (klant)';
 
   @override
   String get invoiceKvk => 'KvK';

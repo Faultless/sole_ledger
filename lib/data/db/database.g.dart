@@ -1515,6 +1515,16 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     requiredDuringInsert: false,
     defaultValue: const Constant(30),
   );
+  static const VerificationMeta _paymentDueDayOfMonthMeta =
+      const VerificationMeta('paymentDueDayOfMonth');
+  @override
+  late final GeneratedColumn<int> paymentDueDayOfMonth = GeneratedColumn<int>(
+    'payment_due_day_of_month',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -1557,6 +1567,7 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     defaultVatTreatment,
     defaultHourlyRate,
     paymentTermDays,
+    paymentDueDayOfMonth,
     notes,
     archived,
   ];
@@ -1684,6 +1695,15 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
         ),
       );
     }
+    if (data.containsKey('payment_due_day_of_month')) {
+      context.handle(
+        _paymentDueDayOfMonthMeta,
+        paymentDueDayOfMonth.isAcceptableOrUnknown(
+          data['payment_due_day_of_month']!,
+          _paymentDueDayOfMonthMeta,
+        ),
+      );
+    }
     if (data.containsKey('notes')) {
       context.handle(
         _notesMeta,
@@ -1765,6 +1785,10 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
         DriftSqlType.int,
         data['${effectivePrefix}payment_term_days'],
       )!,
+      paymentDueDayOfMonth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}payment_due_day_of_month'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -1802,6 +1826,11 @@ class Client extends DataClass implements Insertable<Client> {
   final String defaultVatTreatment;
   final double? defaultHourlyRate;
   final int paymentTermDays;
+
+  /// When set (1-28), invoices fall due on that day of the month *after* the
+  /// issue date, and [paymentTermDays] is ignored. Suits clients billed on a
+  /// calendar-month cycle who pay on a fixed day.
+  final int? paymentDueDayOfMonth;
   final String notes;
   final bool archived;
   const Client({
@@ -1820,6 +1849,7 @@ class Client extends DataClass implements Insertable<Client> {
     required this.defaultVatTreatment,
     this.defaultHourlyRate,
     required this.paymentTermDays,
+    this.paymentDueDayOfMonth,
     required this.notes,
     required this.archived,
   });
@@ -1843,6 +1873,9 @@ class Client extends DataClass implements Insertable<Client> {
       map['default_hourly_rate'] = Variable<double>(defaultHourlyRate);
     }
     map['payment_term_days'] = Variable<int>(paymentTermDays);
+    if (!nullToAbsent || paymentDueDayOfMonth != null) {
+      map['payment_due_day_of_month'] = Variable<int>(paymentDueDayOfMonth);
+    }
     map['notes'] = Variable<String>(notes);
     map['archived'] = Variable<bool>(archived);
     return map;
@@ -1867,6 +1900,9 @@ class Client extends DataClass implements Insertable<Client> {
           ? const Value.absent()
           : Value(defaultHourlyRate),
       paymentTermDays: Value(paymentTermDays),
+      paymentDueDayOfMonth: paymentDueDayOfMonth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paymentDueDayOfMonth),
       notes: Value(notes),
       archived: Value(archived),
     );
@@ -1897,6 +1933,9 @@ class Client extends DataClass implements Insertable<Client> {
         json['defaultHourlyRate'],
       ),
       paymentTermDays: serializer.fromJson<int>(json['paymentTermDays']),
+      paymentDueDayOfMonth: serializer.fromJson<int?>(
+        json['paymentDueDayOfMonth'],
+      ),
       notes: serializer.fromJson<String>(json['notes']),
       archived: serializer.fromJson<bool>(json['archived']),
     );
@@ -1920,6 +1959,7 @@ class Client extends DataClass implements Insertable<Client> {
       'defaultVatTreatment': serializer.toJson<String>(defaultVatTreatment),
       'defaultHourlyRate': serializer.toJson<double?>(defaultHourlyRate),
       'paymentTermDays': serializer.toJson<int>(paymentTermDays),
+      'paymentDueDayOfMonth': serializer.toJson<int?>(paymentDueDayOfMonth),
       'notes': serializer.toJson<String>(notes),
       'archived': serializer.toJson<bool>(archived),
     };
@@ -1941,6 +1981,7 @@ class Client extends DataClass implements Insertable<Client> {
     String? defaultVatTreatment,
     Value<double?> defaultHourlyRate = const Value.absent(),
     int? paymentTermDays,
+    Value<int?> paymentDueDayOfMonth = const Value.absent(),
     String? notes,
     bool? archived,
   }) => Client(
@@ -1961,6 +2002,9 @@ class Client extends DataClass implements Insertable<Client> {
         ? defaultHourlyRate.value
         : this.defaultHourlyRate,
     paymentTermDays: paymentTermDays ?? this.paymentTermDays,
+    paymentDueDayOfMonth: paymentDueDayOfMonth.present
+        ? paymentDueDayOfMonth.value
+        : this.paymentDueDayOfMonth,
     notes: notes ?? this.notes,
     archived: archived ?? this.archived,
   );
@@ -1997,6 +2041,9 @@ class Client extends DataClass implements Insertable<Client> {
       paymentTermDays: data.paymentTermDays.present
           ? data.paymentTermDays.value
           : this.paymentTermDays,
+      paymentDueDayOfMonth: data.paymentDueDayOfMonth.present
+          ? data.paymentDueDayOfMonth.value
+          : this.paymentDueDayOfMonth,
       notes: data.notes.present ? data.notes.value : this.notes,
       archived: data.archived.present ? data.archived.value : this.archived,
     );
@@ -2020,6 +2067,7 @@ class Client extends DataClass implements Insertable<Client> {
           ..write('defaultVatTreatment: $defaultVatTreatment, ')
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
           ..write('paymentTermDays: $paymentTermDays, ')
+          ..write('paymentDueDayOfMonth: $paymentDueDayOfMonth, ')
           ..write('notes: $notes, ')
           ..write('archived: $archived')
           ..write(')'))
@@ -2043,6 +2091,7 @@ class Client extends DataClass implements Insertable<Client> {
     defaultVatTreatment,
     defaultHourlyRate,
     paymentTermDays,
+    paymentDueDayOfMonth,
     notes,
     archived,
   );
@@ -2065,6 +2114,7 @@ class Client extends DataClass implements Insertable<Client> {
           other.defaultVatTreatment == this.defaultVatTreatment &&
           other.defaultHourlyRate == this.defaultHourlyRate &&
           other.paymentTermDays == this.paymentTermDays &&
+          other.paymentDueDayOfMonth == this.paymentDueDayOfMonth &&
           other.notes == this.notes &&
           other.archived == this.archived);
 }
@@ -2085,6 +2135,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
   final Value<String> defaultVatTreatment;
   final Value<double?> defaultHourlyRate;
   final Value<int> paymentTermDays;
+  final Value<int?> paymentDueDayOfMonth;
   final Value<String> notes;
   final Value<bool> archived;
   final Value<int> rowid;
@@ -2104,6 +2155,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     this.defaultVatTreatment = const Value.absent(),
     this.defaultHourlyRate = const Value.absent(),
     this.paymentTermDays = const Value.absent(),
+    this.paymentDueDayOfMonth = const Value.absent(),
     this.notes = const Value.absent(),
     this.archived = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2124,6 +2176,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     this.defaultVatTreatment = const Value.absent(),
     this.defaultHourlyRate = const Value.absent(),
     this.paymentTermDays = const Value.absent(),
+    this.paymentDueDayOfMonth = const Value.absent(),
     this.notes = const Value.absent(),
     this.archived = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2145,6 +2198,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     Expression<String>? defaultVatTreatment,
     Expression<double>? defaultHourlyRate,
     Expression<int>? paymentTermDays,
+    Expression<int>? paymentDueDayOfMonth,
     Expression<String>? notes,
     Expression<bool>? archived,
     Expression<int>? rowid,
@@ -2166,6 +2220,8 @@ class ClientsCompanion extends UpdateCompanion<Client> {
         'default_vat_treatment': defaultVatTreatment,
       if (defaultHourlyRate != null) 'default_hourly_rate': defaultHourlyRate,
       if (paymentTermDays != null) 'payment_term_days': paymentTermDays,
+      if (paymentDueDayOfMonth != null)
+        'payment_due_day_of_month': paymentDueDayOfMonth,
       if (notes != null) 'notes': notes,
       if (archived != null) 'archived': archived,
       if (rowid != null) 'rowid': rowid,
@@ -2188,6 +2244,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     Value<String>? defaultVatTreatment,
     Value<double?>? defaultHourlyRate,
     Value<int>? paymentTermDays,
+    Value<int?>? paymentDueDayOfMonth,
     Value<String>? notes,
     Value<bool>? archived,
     Value<int>? rowid,
@@ -2208,6 +2265,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
       defaultVatTreatment: defaultVatTreatment ?? this.defaultVatTreatment,
       defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
       paymentTermDays: paymentTermDays ?? this.paymentTermDays,
+      paymentDueDayOfMonth: paymentDueDayOfMonth ?? this.paymentDueDayOfMonth,
       notes: notes ?? this.notes,
       archived: archived ?? this.archived,
       rowid: rowid ?? this.rowid,
@@ -2264,6 +2322,11 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     if (paymentTermDays.present) {
       map['payment_term_days'] = Variable<int>(paymentTermDays.value);
     }
+    if (paymentDueDayOfMonth.present) {
+      map['payment_due_day_of_month'] = Variable<int>(
+        paymentDueDayOfMonth.value,
+      );
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -2294,6 +2357,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
           ..write('defaultVatTreatment: $defaultVatTreatment, ')
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
           ..write('paymentTermDays: $paymentTermDays, ')
+          ..write('paymentDueDayOfMonth: $paymentDueDayOfMonth, ')
           ..write('notes: $notes, ')
           ..write('archived: $archived, ')
           ..write('rowid: $rowid')
@@ -2774,6 +2838,21 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _dueDateEnabledMeta = const VerificationMeta(
+    'dueDateEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> dueDateEnabled = GeneratedColumn<bool>(
+    'due_date_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("due_date_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   static const VerificationMeta _currencyMeta = const VerificationMeta(
     'currency',
   );
@@ -2895,6 +2974,7 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
     clientId,
     issueDate,
     dueDate,
+    dueDateEnabled,
     currency,
     language,
     status,
@@ -2954,6 +3034,15 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
       );
     } else if (isInserting) {
       context.missing(_dueDateMeta);
+    }
+    if (data.containsKey('due_date_enabled')) {
+      context.handle(
+        _dueDateEnabledMeta,
+        dueDateEnabled.isAcceptableOrUnknown(
+          data['due_date_enabled']!,
+          _dueDateEnabledMeta,
+        ),
+      );
     }
     if (data.containsKey('currency')) {
       context.handle(
@@ -3052,6 +3141,10 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}due_date'],
       )!,
+      dueDateEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}due_date_enabled'],
+      )!,
       currency: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}currency'],
@@ -3107,6 +3200,12 @@ class Invoice extends DataClass implements Insertable<Invoice> {
   final String clientId;
   final DateTime issueDate;
   final DateTime dueDate;
+
+  /// Whether the due date is shown at all. Off means the invoice carries no
+  /// payment deadline: the header row and the "payment due by" line are left
+  /// off the PDF. [dueDate] is still stored so toggling back on restores the
+  /// date that was picked.
+  final bool dueDateEnabled;
   final String currency;
   final String language;
   final String status;
@@ -3123,6 +3222,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     required this.clientId,
     required this.issueDate,
     required this.dueDate,
+    required this.dueDateEnabled,
     required this.currency,
     required this.language,
     required this.status,
@@ -3142,6 +3242,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     map['client_id'] = Variable<String>(clientId);
     map['issue_date'] = Variable<DateTime>(issueDate);
     map['due_date'] = Variable<DateTime>(dueDate);
+    map['due_date_enabled'] = Variable<bool>(dueDateEnabled);
     map['currency'] = Variable<String>(currency);
     map['language'] = Variable<String>(language);
     map['status'] = Variable<String>(status);
@@ -3164,6 +3265,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       clientId: Value(clientId),
       issueDate: Value(issueDate),
       dueDate: Value(dueDate),
+      dueDateEnabled: Value(dueDateEnabled),
       currency: Value(currency),
       language: Value(language),
       status: Value(status),
@@ -3190,6 +3292,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       clientId: serializer.fromJson<String>(json['clientId']),
       issueDate: serializer.fromJson<DateTime>(json['issueDate']),
       dueDate: serializer.fromJson<DateTime>(json['dueDate']),
+      dueDateEnabled: serializer.fromJson<bool>(json['dueDateEnabled']),
       currency: serializer.fromJson<String>(json['currency']),
       language: serializer.fromJson<String>(json['language']),
       status: serializer.fromJson<String>(json['status']),
@@ -3211,6 +3314,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       'clientId': serializer.toJson<String>(clientId),
       'issueDate': serializer.toJson<DateTime>(issueDate),
       'dueDate': serializer.toJson<DateTime>(dueDate),
+      'dueDateEnabled': serializer.toJson<bool>(dueDateEnabled),
       'currency': serializer.toJson<String>(currency),
       'language': serializer.toJson<String>(language),
       'status': serializer.toJson<String>(status),
@@ -3230,6 +3334,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     String? clientId,
     DateTime? issueDate,
     DateTime? dueDate,
+    bool? dueDateEnabled,
     String? currency,
     String? language,
     String? status,
@@ -3246,6 +3351,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     clientId: clientId ?? this.clientId,
     issueDate: issueDate ?? this.issueDate,
     dueDate: dueDate ?? this.dueDate,
+    dueDateEnabled: dueDateEnabled ?? this.dueDateEnabled,
     currency: currency ?? this.currency,
     language: language ?? this.language,
     status: status ?? this.status,
@@ -3264,6 +3370,9 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       clientId: data.clientId.present ? data.clientId.value : this.clientId,
       issueDate: data.issueDate.present ? data.issueDate.value : this.issueDate,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      dueDateEnabled: data.dueDateEnabled.present
+          ? data.dueDateEnabled.value
+          : this.dueDateEnabled,
       currency: data.currency.present ? data.currency.value : this.currency,
       language: data.language.present ? data.language.value : this.language,
       status: data.status.present ? data.status.value : this.status,
@@ -3291,6 +3400,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           ..write('clientId: $clientId, ')
           ..write('issueDate: $issueDate, ')
           ..write('dueDate: $dueDate, ')
+          ..write('dueDateEnabled: $dueDateEnabled, ')
           ..write('currency: $currency, ')
           ..write('language: $language, ')
           ..write('status: $status, ')
@@ -3312,6 +3422,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     clientId,
     issueDate,
     dueDate,
+    dueDateEnabled,
     currency,
     language,
     status,
@@ -3332,6 +3443,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           other.clientId == this.clientId &&
           other.issueDate == this.issueDate &&
           other.dueDate == this.dueDate &&
+          other.dueDateEnabled == this.dueDateEnabled &&
           other.currency == this.currency &&
           other.language == this.language &&
           other.status == this.status &&
@@ -3350,6 +3462,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
   final Value<String> clientId;
   final Value<DateTime> issueDate;
   final Value<DateTime> dueDate;
+  final Value<bool> dueDateEnabled;
   final Value<String> currency;
   final Value<String> language;
   final Value<String> status;
@@ -3367,6 +3480,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     this.clientId = const Value.absent(),
     this.issueDate = const Value.absent(),
     this.dueDate = const Value.absent(),
+    this.dueDateEnabled = const Value.absent(),
     this.currency = const Value.absent(),
     this.language = const Value.absent(),
     this.status = const Value.absent(),
@@ -3385,6 +3499,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     required String clientId,
     required DateTime issueDate,
     required DateTime dueDate,
+    this.dueDateEnabled = const Value.absent(),
     this.currency = const Value.absent(),
     this.language = const Value.absent(),
     this.status = const Value.absent(),
@@ -3408,6 +3523,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     Expression<String>? clientId,
     Expression<DateTime>? issueDate,
     Expression<DateTime>? dueDate,
+    Expression<bool>? dueDateEnabled,
     Expression<String>? currency,
     Expression<String>? language,
     Expression<String>? status,
@@ -3426,6 +3542,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
       if (clientId != null) 'client_id': clientId,
       if (issueDate != null) 'issue_date': issueDate,
       if (dueDate != null) 'due_date': dueDate,
+      if (dueDateEnabled != null) 'due_date_enabled': dueDateEnabled,
       if (currency != null) 'currency': currency,
       if (language != null) 'language': language,
       if (status != null) 'status': status,
@@ -3446,6 +3563,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     Value<String>? clientId,
     Value<DateTime>? issueDate,
     Value<DateTime>? dueDate,
+    Value<bool>? dueDateEnabled,
     Value<String>? currency,
     Value<String>? language,
     Value<String>? status,
@@ -3464,6 +3582,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
       clientId: clientId ?? this.clientId,
       issueDate: issueDate ?? this.issueDate,
       dueDate: dueDate ?? this.dueDate,
+      dueDateEnabled: dueDateEnabled ?? this.dueDateEnabled,
       currency: currency ?? this.currency,
       language: language ?? this.language,
       status: status ?? this.status,
@@ -3495,6 +3614,9 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     }
     if (dueDate.present) {
       map['due_date'] = Variable<DateTime>(dueDate.value);
+    }
+    if (dueDateEnabled.present) {
+      map['due_date_enabled'] = Variable<bool>(dueDateEnabled.value);
     }
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
@@ -3540,6 +3662,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
           ..write('clientId: $clientId, ')
           ..write('issueDate: $issueDate, ')
           ..write('dueDate: $dueDate, ')
+          ..write('dueDateEnabled: $dueDateEnabled, ')
           ..write('currency: $currency, ')
           ..write('language: $language, ')
           ..write('status: $status, ')
@@ -6618,6 +6741,7 @@ typedef $$ClientsTableCreateCompanionBuilder =
       Value<String> defaultVatTreatment,
       Value<double?> defaultHourlyRate,
       Value<int> paymentTermDays,
+      Value<int?> paymentDueDayOfMonth,
       Value<String> notes,
       Value<bool> archived,
       Value<int> rowid,
@@ -6639,6 +6763,7 @@ typedef $$ClientsTableUpdateCompanionBuilder =
       Value<String> defaultVatTreatment,
       Value<double?> defaultHourlyRate,
       Value<int> paymentTermDays,
+      Value<int?> paymentDueDayOfMonth,
       Value<String> notes,
       Value<bool> archived,
       Value<int> rowid,
@@ -6786,6 +6911,11 @@ class $$ClientsTableFilterComposer
 
   ColumnFilters<int> get paymentTermDays => $composableBuilder(
     column: $table.paymentTermDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get paymentDueDayOfMonth => $composableBuilder(
+    column: $table.paymentDueDayOfMonth,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6959,6 +7089,11 @@ class $$ClientsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get paymentDueDayOfMonth => $composableBuilder(
+    column: $table.paymentDueDayOfMonth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -7037,6 +7172,11 @@ class $$ClientsTableAnnotationComposer
 
   GeneratedColumn<int> get paymentTermDays => $composableBuilder(
     column: $table.paymentTermDays,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get paymentDueDayOfMonth => $composableBuilder(
+    column: $table.paymentDueDayOfMonth,
     builder: (column) => column,
   );
 
@@ -7169,6 +7309,7 @@ class $$ClientsTableTableManager
                 Value<String> defaultVatTreatment = const Value.absent(),
                 Value<double?> defaultHourlyRate = const Value.absent(),
                 Value<int> paymentTermDays = const Value.absent(),
+                Value<int?> paymentDueDayOfMonth = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7188,6 +7329,7 @@ class $$ClientsTableTableManager
                 defaultVatTreatment: defaultVatTreatment,
                 defaultHourlyRate: defaultHourlyRate,
                 paymentTermDays: paymentTermDays,
+                paymentDueDayOfMonth: paymentDueDayOfMonth,
                 notes: notes,
                 archived: archived,
                 rowid: rowid,
@@ -7209,6 +7351,7 @@ class $$ClientsTableTableManager
                 Value<String> defaultVatTreatment = const Value.absent(),
                 Value<double?> defaultHourlyRate = const Value.absent(),
                 Value<int> paymentTermDays = const Value.absent(),
+                Value<int?> paymentDueDayOfMonth = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7228,6 +7371,7 @@ class $$ClientsTableTableManager
                 defaultVatTreatment: defaultVatTreatment,
                 defaultHourlyRate: defaultHourlyRate,
                 paymentTermDays: paymentTermDays,
+                paymentDueDayOfMonth: paymentDueDayOfMonth,
                 notes: notes,
                 archived: archived,
                 rowid: rowid,
@@ -7777,6 +7921,7 @@ typedef $$InvoicesTableCreateCompanionBuilder =
       required String clientId,
       required DateTime issueDate,
       required DateTime dueDate,
+      Value<bool> dueDateEnabled,
       Value<String> currency,
       Value<String> language,
       Value<String> status,
@@ -7796,6 +7941,7 @@ typedef $$InvoicesTableUpdateCompanionBuilder =
       Value<String> clientId,
       Value<DateTime> issueDate,
       Value<DateTime> dueDate,
+      Value<bool> dueDateEnabled,
       Value<String> currency,
       Value<String> language,
       Value<String> status,
@@ -7893,6 +8039,11 @@ class $$InvoicesTableFilterComposer
 
   ColumnFilters<DateTime> get dueDate => $composableBuilder(
     column: $table.dueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get dueDateEnabled => $composableBuilder(
+    column: $table.dueDateEnabled,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8049,6 +8200,11 @@ class $$InvoicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get dueDateEnabled => $composableBuilder(
+    column: $table.dueDateEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get currency => $composableBuilder(
     column: $table.currency,
     builder: (column) => ColumnOrderings(column),
@@ -8143,6 +8299,11 @@ class $$InvoicesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get dueDate =>
       $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get dueDateEnabled => $composableBuilder(
+    column: $table.dueDateEnabled,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get currency =>
       $composableBuilder(column: $table.currency, builder: (column) => column);
@@ -8291,6 +8452,7 @@ class $$InvoicesTableTableManager
                 Value<String> clientId = const Value.absent(),
                 Value<DateTime> issueDate = const Value.absent(),
                 Value<DateTime> dueDate = const Value.absent(),
+                Value<bool> dueDateEnabled = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<String> language = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -8308,6 +8470,7 @@ class $$InvoicesTableTableManager
                 clientId: clientId,
                 issueDate: issueDate,
                 dueDate: dueDate,
+                dueDateEnabled: dueDateEnabled,
                 currency: currency,
                 language: language,
                 status: status,
@@ -8327,6 +8490,7 @@ class $$InvoicesTableTableManager
                 required String clientId,
                 required DateTime issueDate,
                 required DateTime dueDate,
+                Value<bool> dueDateEnabled = const Value.absent(),
                 Value<String> currency = const Value.absent(),
                 Value<String> language = const Value.absent(),
                 Value<String> status = const Value.absent(),
@@ -8344,6 +8508,7 @@ class $$InvoicesTableTableManager
                 clientId: clientId,
                 issueDate: issueDate,
                 dueDate: dueDate,
+                dueDateEnabled: dueDateEnabled,
                 currency: currency,
                 language: language,
                 status: status,

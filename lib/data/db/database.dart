@@ -72,6 +72,10 @@ class Clients extends Table {
       text().withDefault(const Constant('reverseChargeEu'))();
   RealColumn get defaultHourlyRate => real().nullable()();
   IntColumn get paymentTermDays => integer().withDefault(const Constant(30))();
+  /// When set (1-28), invoices fall due on that day of the month *after* the
+  /// issue date, and [paymentTermDays] is ignored. Suits clients billed on a
+  /// calendar-month cycle who pay on a fixed day.
+  IntColumn get paymentDueDayOfMonth => integer().nullable()();
   TextColumn get notes => text().withDefault(const Constant(''))();
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
 
@@ -137,6 +141,11 @@ class Invoices extends Table {
   TextColumn get clientId => text().references(Clients, #id)();
   DateTimeColumn get issueDate => dateTime()();
   DateTimeColumn get dueDate => dateTime()();
+  /// Whether the due date is shown at all. Off means the invoice carries no
+  /// payment deadline: the header row and the "payment due by" line are left
+  /// off the PDF. [dueDate] is still stored so toggling back on restores the
+  /// date that was picked.
+  BoolColumn get dueDateEnabled => boolean().withDefault(const Constant(true))();
   TextColumn get currency => text().withDefault(const Constant('EUR'))();
   TextColumn get language => text().withDefault(const Constant('nl'))();
   TextColumn get status => text().withDefault(const Constant('draft'))();
@@ -221,7 +230,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -244,6 +253,12 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             await m.addColumn(invoiceLines, invoiceLines.fromTimeEntries);
+          }
+          if (from < 8) {
+            await m.addColumn(clients, clients.paymentDueDayOfMonth);
+          }
+          if (from < 9) {
+            await m.addColumn(invoices, invoices.dueDateEnabled);
           }
         },
         beforeOpen: (details) async {
@@ -282,6 +297,16 @@ class AppDatabase extends _$AppDatabase {
             table: 'invoice_lines',
             column: 'from_time_entries',
             definition: 'BOOLEAN NOT NULL DEFAULT 0',
+          );
+          await _ensureColumn(
+            table: 'clients',
+            column: 'payment_due_day_of_month',
+            definition: 'INTEGER',
+          );
+          await _ensureColumn(
+            table: 'invoices',
+            column: 'due_date_enabled',
+            definition: 'BOOLEAN NOT NULL DEFAULT 1',
           );
         },
       );

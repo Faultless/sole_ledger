@@ -84,7 +84,7 @@ abstract final class InvoicePdf {
                           fontStyle: pw.FontStyle.italic)),
                 ),
             pw.Spacer(),
-            _footer(l, fmt, profile, invoice),
+            _footer(l, fmt, profile, invoice, client),
             if (invoice.notes.isNotEmpty) ...[
               pw.SizedBox(height: 12),
               pw.Text(invoice.notes,
@@ -137,7 +137,7 @@ abstract final class InvoicePdf {
             pw.SizedBox(height: 8),
             _metaRow(l.invoiceNumber, inv.number),
             _metaRow(l.invoiceIssueDate, fmt.date(inv.issueDate)),
-            _metaRow(l.invoiceDueDate, fmt.date(inv.dueDate)),
+            if (inv.dueDateEnabled) _metaRow(l.invoiceDueDate, fmt.date(inv.dueDate)),
             if (inv.purchaseOrder.isNotEmpty)
               _metaRow(l.invoicePurchaseOrder, inv.purchaseOrder),
           ],
@@ -235,46 +235,94 @@ abstract final class InvoicePdf {
   }
 
   static pw.Widget _footer(
-      L10n l, Formatters fmt, BusinessProfile p, Invoice inv) {
+      L10n l, Formatters fmt, BusinessProfile p, Invoice inv, Client c) {
     return pw.Container(
       decoration: const pw.BoxDecoration(
         border: pw.Border(top: pw.BorderSide(color: _line)),
       ),
       padding: const pw.EdgeInsets.only(top: 12),
-      child: pw.Row(
+      child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
-          pw.Expanded(
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(l.invoicePaymentDetails.toUpperCase(),
-                    style: pw.TextStyle(
-                        fontSize: 8,
-                        fontWeight: pw.FontWeight.bold,
-                        color: _muted)),
-                pw.SizedBox(height: 4),
-                if (p.bankName.isNotEmpty) _small(p.bankName),
-                if (p.iban.isNotEmpty) _small('IBAN: ${p.iban}'),
-                if (p.bic.isNotEmpty) _small('BIC: ${p.bic}'),
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(l.invoicePaymentDetails.toUpperCase(),
+                  style: pw.TextStyle(
+                      fontSize: 8,
+                      fontWeight: pw.FontWeight.bold,
+                      color: _muted)),
+              pw.SizedBox(height: 4),
+              if (p.bankName.isNotEmpty) _small(p.bankName),
+              if (p.iban.isNotEmpty) _small('IBAN: ${p.iban}'),
+              if (p.bic.isNotEmpty) _small('BIC: ${p.bic}'),
+              if (inv.dueDateEnabled) ...[
                 pw.SizedBox(height: 6),
                 pw.Text(l.invoicePaymentDue(fmt.date(inv.dueDate)),
                     style: pw.TextStyle(
                         fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
               ],
-            ),
+            ],
           ),
-          pw.Column(
+          pw.SizedBox(height: 18),
+          // One signature block per party, each ruled line sitting directly
+          // under the name and address of whoever signs it: ours on the left,
+          // the client's on the right, so a countersigned copy can be returned.
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              pw.SizedBox(height: 24),
-              pw.Container(width: 150, height: 0.8, color: _muted),
-              pw.SizedBox(height: 3),
-              pw.Text(l.invoiceSignature,
-                  style: const pw.TextStyle(fontSize: 8, color: _muted)),
+              pw.Expanded(
+                child: _signatureBlock(
+                  role: l.invoiceSignature,
+                  name: p.tradeName.isNotEmpty ? p.tradeName : p.legalName,
+                  address: [
+                    if (p.addressLine1.isNotEmpty) p.addressLine1,
+                    '${p.postalCode} ${p.city}'.trim(),
+                    p.country,
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 28),
+              pw.Expanded(
+                child: _signatureBlock(
+                  role: l.invoiceSignatureClient,
+                  name: c.name,
+                  address: [
+                    if (c.addressLine1.isNotEmpty) c.addressLine1,
+                    '${c.postalCode} ${c.city}'.trim(),
+                    c.country,
+                  ],
+                ),
+              ),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  /// A signature block: who signs, their address, then the line they sign on.
+  /// Naming the party above the rule keeps a countersigned copy unambiguous
+  /// about which signature belongs to whom.
+  static pw.Widget _signatureBlock({
+    required String role,
+    required String name,
+    required List<String> address,
+  }) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(role.toUpperCase(),
+            style: pw.TextStyle(
+                fontSize: 8, fontWeight: pw.FontWeight.bold, color: _muted)),
+        pw.SizedBox(height: 4),
+        pw.Text(name,
+            style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+        for (final line in address)
+          if (line.isNotEmpty) _small(line),
+        pw.SizedBox(height: 26),
+        pw.Container(height: 0.8, color: _muted),
+      ],
     );
   }
 

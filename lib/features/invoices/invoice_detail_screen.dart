@@ -261,7 +261,8 @@ class _InvoiceBody extends StatelessWidget {
                 const SizedBox(height: 6),
                 _meta(l10n.invoiceNumber, invoice.number, text),
                 _meta(l10n.invoiceIssueDate, fmt.date(invoice.issueDate), text),
-                _meta(l10n.invoiceDueDate, fmt.date(invoice.dueDate), text),
+                if (invoice.dueDateEnabled)
+                  _meta(l10n.invoiceDueDate, fmt.date(invoice.dueDate), text),
                 if (invoice.purchaseOrder.isNotEmpty)
                   _meta(l10n.invoicePurchaseOrder, invoice.purchaseOrder, text),
               ],
@@ -312,35 +313,58 @@ class _InvoiceBody extends StatelessWidget {
                       ?.copyWith(fontStyle: FontStyle.italic)),
             ),
         const Divider(height: 40),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.invoicePaymentDetails, style: text.labelMedium),
+            const SizedBox(height: 4),
+            if (profile?.bankName.isNotEmpty == true) Text(profile!.bankName),
+            if (profile?.iban.isNotEmpty == true) Text('IBAN: ${profile!.iban}'),
+            if (profile?.bic.isNotEmpty == true) Text('BIC: ${profile!.bic}'),
+            if (invoice.dueDateEnabled) ...[
+              const SizedBox(height: 6),
+              Text(l10n.invoicePaymentDue(fmt.date(invoice.dueDate)),
+                  style:
+                      text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+            ],
+          ],
+        ),
+        const SizedBox(height: 24),
+        // Mirrors the PDF: each rule sits under the name and address of the
+        // party who signs it — ours on the left, the client's on the right.
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(l10n.invoicePaymentDetails, style: text.labelMedium),
-                  const SizedBox(height: 4),
-                  if (profile?.bankName.isNotEmpty == true)
-                    Text(profile!.bankName),
-                  if (profile?.iban.isNotEmpty == true)
-                    Text('IBAN: ${profile!.iban}'),
-                  if (profile?.bic.isNotEmpty == true)
-                    Text('BIC: ${profile!.bic}'),
-                  const SizedBox(height: 6),
-                  Text(l10n.invoicePaymentDue(fmt.date(invoice.dueDate)),
-                      style: text.bodyMedium
-                          ?.copyWith(fontWeight: FontWeight.w600)),
+              child: _signatureBlock(
+                role: l10n.invoiceSignature,
+                name: switch (profile) {
+                  null => '',
+                  final p when p.tradeName.isNotEmpty => p.tradeName,
+                  final p => p.legalName,
+                },
+                address: [
+                  if (profile?.addressLine1.isNotEmpty == true)
+                    profile!.addressLine1,
+                  '${profile?.postalCode ?? ''} ${profile?.city ?? ''}'.trim(),
+                  profile?.country ?? '',
                 ],
+                text: text,
               ),
             ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Container(width: 160, height: 1, color: Colors.grey),
-                const SizedBox(height: 4),
-                Text(l10n.invoiceSignature, style: text.labelSmall),
-              ],
+            const SizedBox(width: 28),
+            Expanded(
+              child: _signatureBlock(
+                role: l10n.invoiceSignatureClient,
+                name: client?.name ?? '',
+                address: [
+                  if (client?.addressLine1.isNotEmpty == true)
+                    client!.addressLine1,
+                  '${client?.postalCode ?? ''} ${client?.city ?? ''}'.trim(),
+                  client?.country ?? '',
+                ],
+                text: text,
+              ),
             ),
           ],
         ),
@@ -348,6 +372,29 @@ class _InvoiceBody extends StatelessWidget {
           const SizedBox(height: 20),
           Text(invoice.notes, style: text.bodySmall),
         ],
+      ],
+    );
+  }
+
+  /// A signature block: who signs, their address, then the line they sign on.
+  /// Naming the party above the rule keeps a countersigned copy unambiguous.
+  Widget _signatureBlock({
+    required String role,
+    required String name,
+    required List<String> address,
+    required TextTheme text,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(role.toUpperCase(), style: text.labelSmall),
+        const SizedBox(height: 4),
+        Text(name,
+            style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+        for (final line in address)
+          if (line.isNotEmpty) Text(line, style: text.bodySmall),
+        const SizedBox(height: 32),
+        Container(height: 1, color: Colors.grey),
       ],
     );
   }

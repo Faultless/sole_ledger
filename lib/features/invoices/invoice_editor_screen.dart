@@ -15,6 +15,10 @@ import '../../domain/tax/invoice_totals.dart';
 import '../../domain/tax/vat_treatment.dart';
 import '../../l10n/app_localizations.dart';
 
+/// Fallback payment terms for a draft that has no client selected yet; real
+/// terms come from the client record once one is picked.
+const int _defaultTermDays = 30;
+
 /// A single editable invoice line, owning its own text controllers.
 class _EditLine {
   _EditLine({
@@ -66,7 +70,18 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
   Currency _currency = Currency.eur;
   String _language = 'nl';
   DateTime _issueDate = DateTime.now();
-  DateTime _dueDate = DateTime.now().add(const Duration(days: 30));
+  DateTime _dueDate = DateTime.now().add(const Duration(days: _defaultTermDays));
+  /// Whether this invoice carries a due date at all. Off leaves the deadline
+  /// off the document entirely; the picked date is still kept so switching
+  /// back on restores it.
+  bool _dueDateEnabled = true;
+  /// Set once the due date has been picked by hand, after which it is left
+  /// alone: changing the issue date or the client no longer recomputes it.
+  bool _dueDateManual = false;
+  /// Payment terms of the selected client, kept so the due date can be
+  /// recomputed whenever the issue date moves.
+  int _termDays = _defaultTermDays;
+  int? _dueDayOfMonth;
   final _poCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   final List<_EditLine> _lines = [];
@@ -76,6 +91,21 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
   bool _refreshing = false;
 
   bool get _editing => widget.invoiceId != null;
+
+  /// Due date for [issue] under the current client's terms: a fixed day of the
+  /// month after issuance when the client uses one, otherwise net-[_termDays].
+  /// Day-of-month terms track the issue month, so redating a draft from e.g.
+  /// 3 September to 1 October moves the due date from 10 October to 10 November.
+  DateTime _dueDateFor(DateTime issue) {
+    final day = _dueDayOfMonth;
+    if (day == null) return issue.add(Duration(days: _termDays));
+    return DateTime(issue.year, issue.month + 1, day);
+  }
+
+  void _adoptTerms(Client client) {
+    _termDays = client.paymentTermDays;
+    _dueDayOfMonth = client.paymentDueDayOfMonth;
+  }
 
   @override
   void initState() {
@@ -95,6 +125,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
     }
     final lines = await repo.invoiceLines(id);
     final linkedEntries = await repo.timeEntriesForInvoice(id);
+    final client = await repo.findClient(invoice.clientId);
     if (!mounted) return;
     setState(() {
       _clientId = invoice.clientId;
@@ -102,6 +133,11 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
       _language = invoice.language;
       _issueDate = invoice.issueDate;
       _dueDate = invoice.dueDate;
+      _dueDateEnabled = invoice.dueDateEnabled;
+      if (client != null) _adoptTerms(client);
+      // A saved invoice keeps the date it was saved with; re-picking a client
+      // or redating it must not silently move an agreed deadline.
+      _dueDateManual = true;
       _poCtrl.text = invoice.purchaseOrder;
       _notesCtrl.text = invoice.notes;
       for (final line in lines) {
@@ -135,7 +171,8 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
       _clientId = client.id;
       _currency = Currency.fromCode(client.defaultCurrency);
       _language = client.language;
-      _dueDate = _issueDate.add(Duration(days: client.paymentTermDays));
+      _adoptTerms(client);
+      if (!_dueDateManual) _dueDate = _dueDateFor(_issueDate);
     });
     // Auto-pull unbilled time, grouped into lines per project.
     final entries = await repo.unbilledEntriesForClient(client.id);
@@ -262,6 +299,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
           clientId: Value(_clientId!),
           issueDate: Value(_issueDate),
           dueDate: Value(_dueDate),
+          dueDateEnabled: Value(_dueDateEnabled),
           currency: Value(_currency.code),
           language: Value(_language),
           purchaseOrder: Value(_poCtrl.text.trim()),
@@ -282,6 +320,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
           clientId: _clientId!,
           issueDate: _issueDate,
           dueDate: _dueDate,
+          dueDateEnabled: Value(_dueDateEnabled),
           createdAt: DateTime.now(),
           currency: Value(_currency.code),
           language: Value(_language),
@@ -373,7 +412,10 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
                   label: l10n.invoiceIssueDate,
                   value: _issueDate,
                   format: fmt.date,
-                  onPick: (d) => setState(() => _issueDate = d),
+                  onPick: (d) => setState(() {
+                    _issueDate = d;
+                    if (!_dueDateManual) _dueDate = _dueDateFor(d);
+                  }),
                 ),
               ),
               const SizedBox(width: 12),
@@ -382,10 +424,21 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
                   label: l10n.invoiceDueDate,
                   value: _dueDate,
                   format: fmt.date,
-                  onPick: (d) => setState(() => _dueDate = d),
+                  enabled: _dueDateEnabled,
+                  onPick: (d) => setState(() {
+                    _dueDate = d;
+                    _dueDateManual = true;
+                  }),
                 ),
               ),
             ]),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(l10n.invoiceDueDateEnabled),
+              value: _dueDateEnabled,
+              onChanged: (v) => setState(() => _dueDateEnabled = v),
+            ),
             const SizedBox(height: 20),
             Row(
               children: [
@@ -507,27 +560,40 @@ class _DateField extends StatelessWidget {
     required this.value,
     required this.format,
     required this.onPick,
+    this.enabled = true,
   });
   final String label;
   final DateTime value;
   final String Function(DateTime) format;
   final ValueChanged<DateTime> onPick;
+  /// A disabled field greys out and stops opening the calendar — used for the
+  /// due date while the invoice carries none.
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: value,
-          firstDate: DateTime(2020),
-          lastDate: DateTime(2100),
-        );
-        if (picked != null) onPick(picked);
-      },
+      onTap: !enabled
+          ? null
+          : () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: value,
+                // Wide enough to pick any plausible day/month/year by hand,
+                // including a backdated invoice.
+                firstDate: DateTime(2000),
+                lastDate: DateTime(2100),
+              );
+              if (picked != null) onPick(picked);
+            },
       child: InputDecorator(
-        decoration: InputDecoration(labelText: label),
-        child: Text(format(value)),
+        decoration: InputDecoration(labelText: label, enabled: enabled),
+        child: Text(
+          format(value),
+          style: enabled
+              ? null
+              : TextStyle(color: Theme.of(context).disabledColor),
+        ),
       ),
     );
   }

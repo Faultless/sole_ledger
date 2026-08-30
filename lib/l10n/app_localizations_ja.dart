@@ -258,6 +258,9 @@ class L10nJa extends L10n {
   String get invoiceDueDate => '支払期限';
 
   @override
+  String get invoiceDueDateEnabled => '支払期限を設定する';
+
+  @override
   String get invoiceBillTo => '請求先';
 
   @override
@@ -288,6 +291,9 @@ class L10nJa extends L10n {
 
   @override
   String get invoiceSignature => '署名';
+
+  @override
+  String get invoiceSignatureClient => '署名（先方）';
 
   @override
   String get invoiceKvk => 'KvK番号';

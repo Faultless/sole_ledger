@@ -585,6 +585,12 @@ abstract class L10n {
   /// **'Due date'**
   String get invoiceDueDate;
 
+  /// No description provided for @invoiceDueDateEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a due date'**
+  String get invoiceDueDateEnabled;
+
   /// No description provided for @invoiceBillTo.
   ///
   /// In en, this message translates to:
@@ -644,6 +650,12 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'Signature'**
   String get invoiceSignature;
+
+  /// No description provided for @invoiceSignatureClient.
+  ///
+  /// In en, this message translates to:
+  /// **'Signature (client)'**
+  String get invoiceSignatureClient;
 
   /// No description provided for @invoiceKvk.
   ///

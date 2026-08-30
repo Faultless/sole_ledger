@@ -107,14 +107,25 @@ class _ClientEditorState extends ConsumerState<_ClientEditor> {
   late VatTreatment _treatment = widget.client == null
       ? VatTreatment.reverseChargeEu
       : VatTreatment.byName(widget.client!.defaultVatTreatment);
-  late final int _terms = widget.client?.paymentTermDays ?? 30;
+  late final _terms = TextEditingController(
+      text: (widget.client?.paymentTermDays ?? 30).toString());
+  late final _dueDay = TextEditingController(
+      text: widget.client?.paymentDueDayOfMonth?.toString() ?? '');
 
   @override
   void dispose() {
-    for (final c in [_name, _contact, _vatId, _addr, _city, _country, _email, _rate]) {
+    for (final c in [_name, _contact, _vatId, _addr, _city, _country, _email,
+        _rate, _terms, _dueDay]) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  /// Day-of-month terms only make sense for days every month has.
+  int? _parsedDueDay() {
+    final day = int.tryParse(_dueDay.text.trim());
+    if (day == null || day < 1 || day > 28) return null;
+    return day;
   }
 
   Future<void> _save() async {
@@ -134,7 +145,8 @@ class _ClientEditorState extends ConsumerState<_ClientEditor> {
       defaultCurrency: Value(_currency),
       defaultVatTreatment: Value(_treatment.name),
       defaultHourlyRate: Value(double.tryParse(_rate.text.trim())),
-      paymentTermDays: Value(_terms),
+      paymentTermDays: Value(int.tryParse(_terms.text.trim()) ?? 30),
+      paymentDueDayOfMonth: Value(_parsedDueDay()),
     ));
     if (mounted) Navigator.of(context).pop();
   }
@@ -224,6 +236,31 @@ class _ClientEditorState extends ConsumerState<_ClientEditor> {
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'Hourly rate'),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 12),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Expanded(
+                child: TextField(
+                  controller: _terms,
+                  keyboardType: TextInputType.number,
+                  enabled: _parsedDueDay() == null,
+                  decoration: const InputDecoration(
+                      labelText: 'Payment terms (days)'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  controller: _dueDay,
+                  keyboardType: TextInputType.number,
+                  onChanged: (_) => setState(() {}),
+                  decoration: const InputDecoration(
+                    labelText: 'Or due on day of month',
+                    helperText: 'Day 1-28 of the month after issue',
+                    helperMaxLines: 2,
+                  ),
                 ),
               ),
             ]),

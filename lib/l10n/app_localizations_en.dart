@@ -264,6 +264,9 @@ class L10nEn extends L10n {
   String get invoiceDueDate => 'Due date';
 
   @override
+  String get invoiceDueDateEnabled => 'Set a due date';
+
+  @override
   String get invoiceBillTo => 'Bill to';
 
   @override
@@ -294,6 +297,9 @@ class L10nEn extends L10n {
 
   @override
   String get invoiceSignature => 'Signature';
+
+  @override
+  String get invoiceSignatureClient => 'Signature (client)';
 
   @override
   String get invoiceKvk => 'KvK';
