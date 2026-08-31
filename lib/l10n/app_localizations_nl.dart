@@ -296,6 +296,45 @@ class L10nNl extends L10n {
   String get invoiceThankYou => 'Bedankt voor uw opdracht.';
 
   @override
+  String invoiceAllowance(String rate) {
+    return 'Belastingtoeslag opdrachtnemer ($rate%)';
+  }
+
+  @override
+  String get invoiceAllowanceNote =>
+      'De belastingtoeslag opdrachtnemer is een contractuele opslag ter dekking van de eigen belastingdruk van de opdrachtnemer. Het is geen overheidsbelasting en er wordt niets van afgedragen aan een belastingdienst.';
+
+  @override
+  String get invoiceAllowanceEnabled => 'Belastingtoeslag toevoegen';
+
+  @override
+  String get invoiceAllowanceRate => 'Percentage (%)';
+
+  @override
+  String get invoiceAllowanceMode => 'Berekeningswijze';
+
+  @override
+  String get allowanceModeSurcharge => 'Opslag — percentage × netto';
+
+  @override
+  String get allowanceModeGrossUp => 'Bruteren — netto blijft intact';
+
+  @override
+  String get allowanceModeSurchargeHint =>
+      'Telt het percentage op bij het nettobedrag. Je houdt minder over dan het netto zodra de toeslag zelf belast wordt.';
+
+  @override
+  String get allowanceModeGrossUpHint =>
+      'Verhoogt het totaal zo dat het netto intact blijft nadat je het percentage reserveert.';
+
+  @override
+  String get settingsAllowanceTitle => 'Belastingtoeslag opdrachtnemer';
+
+  @override
+  String get settingsAllowanceSubtitle =>
+      'Wordt standaard op nieuwe facturen toegepast. Bestaande facturen behouden wat er is opgeslagen.';
+
+  @override
   String get invoiceSignature => 'Handtekening';
 
   @override

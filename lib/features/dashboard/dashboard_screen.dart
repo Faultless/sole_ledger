@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
 import '../../core/widgets/common.dart';
+import '../../data/db/database.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
 import '../../domain/tax/depreciation.dart';
@@ -48,7 +49,7 @@ class DashboardScreen extends ConsumerWidget {
               i.currency == currency.code &&
               !i.issueDate.isBefore(qStart) &&
               i.issueDate.isBefore(qEnd))
-          .fold(0, (sum, i) => sum + i.subtotalMinor),
+          .fold(0, (sum, i) => sum + i.revenueMinor),
       currency,
     );
 
@@ -156,8 +157,8 @@ class _TaxSetAsideCard extends ConsumerWidget {
       if (i.issueDate.year != year) continue;
       if (i.status == InvoiceStatus.cancelled.name) continue;
       final c = Currency.fromCode(i.currency);
-      revenue.update(c, (v) => v + i.subtotalMinor,
-          ifAbsent: () => i.subtotalMinor);
+      revenue.update(c, (v) => v + i.revenueMinor,
+          ifAbsent: () => i.revenueMinor);
     }
     // YTD deductible expenses per currency (after 家事按分).
     final spend = <Currency, int>{};

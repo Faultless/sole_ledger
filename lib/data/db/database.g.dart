@@ -293,6 +293,45 @@ class $BusinessProfilesTable extends BusinessProfiles
     requiredDuringInsert: false,
     defaultValue: const Constant('system'),
   );
+  static const VerificationMeta _defaultAllowanceEnabledMeta =
+      const VerificationMeta('defaultAllowanceEnabled');
+  @override
+  late final GeneratedColumn<bool> defaultAllowanceEnabled =
+      GeneratedColumn<bool>(
+        'default_allowance_enabled',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("default_allowance_enabled" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _defaultAllowanceRatePercentMeta =
+      const VerificationMeta('defaultAllowanceRatePercent');
+  @override
+  late final GeneratedColumn<double> defaultAllowanceRatePercent =
+      GeneratedColumn<double>(
+        'default_allowance_rate_percent',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(25),
+      );
+  static const VerificationMeta _defaultAllowanceModeMeta =
+      const VerificationMeta('defaultAllowanceMode');
+  @override
+  late final GeneratedColumn<String> defaultAllowanceMode =
+      GeneratedColumn<String>(
+        'default_allowance_mode',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('surcharge'),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -320,6 +359,9 @@ class $BusinessProfilesTable extends BusinessProfiles
     defaultHourlyRate,
     eurToJpyRate,
     themeMode,
+    defaultAllowanceEnabled,
+    defaultAllowanceRatePercent,
+    defaultAllowanceMode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -512,6 +554,33 @@ class $BusinessProfilesTable extends BusinessProfiles
         themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta),
       );
     }
+    if (data.containsKey('default_allowance_enabled')) {
+      context.handle(
+        _defaultAllowanceEnabledMeta,
+        defaultAllowanceEnabled.isAcceptableOrUnknown(
+          data['default_allowance_enabled']!,
+          _defaultAllowanceEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_allowance_rate_percent')) {
+      context.handle(
+        _defaultAllowanceRatePercentMeta,
+        defaultAllowanceRatePercent.isAcceptableOrUnknown(
+          data['default_allowance_rate_percent']!,
+          _defaultAllowanceRatePercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_allowance_mode')) {
+      context.handle(
+        _defaultAllowanceModeMeta,
+        defaultAllowanceMode.isAcceptableOrUnknown(
+          data['default_allowance_mode']!,
+          _defaultAllowanceModeMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -621,6 +690,18 @@ class $BusinessProfilesTable extends BusinessProfiles
         DriftSqlType.string,
         data['${effectivePrefix}theme_mode'],
       )!,
+      defaultAllowanceEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}default_allowance_enabled'],
+      )!,
+      defaultAllowanceRatePercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}default_allowance_rate_percent'],
+      )!,
+      defaultAllowanceMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_allowance_mode'],
+      )!,
     );
   }
 
@@ -661,6 +742,14 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
 
   /// App theme preference: 'system' | 'light' | 'dark'.
   final String themeMode;
+
+  /// Defaults for the contractor tax allowance applied to new invoices — the
+  /// uplift covering your own tax burden. Not VAT: see ContractorAllowance.
+  final bool defaultAllowanceEnabled;
+  final double defaultAllowanceRatePercent;
+
+  /// 'surcharge' (rate x net) or 'grossUp' (net / (1 - rate)).
+  final String defaultAllowanceMode;
   const BusinessProfile({
     required this.id,
     required this.legalName,
@@ -687,6 +776,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     required this.defaultHourlyRate,
     required this.eurToJpyRate,
     required this.themeMode,
+    required this.defaultAllowanceEnabled,
+    required this.defaultAllowanceRatePercent,
+    required this.defaultAllowanceMode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -720,6 +812,11 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     map['default_hourly_rate'] = Variable<double>(defaultHourlyRate);
     map['eur_to_jpy_rate'] = Variable<double>(eurToJpyRate);
     map['theme_mode'] = Variable<String>(themeMode);
+    map['default_allowance_enabled'] = Variable<bool>(defaultAllowanceEnabled);
+    map['default_allowance_rate_percent'] = Variable<double>(
+      defaultAllowanceRatePercent,
+    );
+    map['default_allowance_mode'] = Variable<String>(defaultAllowanceMode);
     return map;
   }
 
@@ -754,6 +851,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       defaultHourlyRate: Value(defaultHourlyRate),
       eurToJpyRate: Value(eurToJpyRate),
       themeMode: Value(themeMode),
+      defaultAllowanceEnabled: Value(defaultAllowanceEnabled),
+      defaultAllowanceRatePercent: Value(defaultAllowanceRatePercent),
+      defaultAllowanceMode: Value(defaultAllowanceMode),
     );
   }
 
@@ -790,6 +890,15 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       defaultHourlyRate: serializer.fromJson<double>(json['defaultHourlyRate']),
       eurToJpyRate: serializer.fromJson<double>(json['eurToJpyRate']),
       themeMode: serializer.fromJson<String>(json['themeMode']),
+      defaultAllowanceEnabled: serializer.fromJson<bool>(
+        json['defaultAllowanceEnabled'],
+      ),
+      defaultAllowanceRatePercent: serializer.fromJson<double>(
+        json['defaultAllowanceRatePercent'],
+      ),
+      defaultAllowanceMode: serializer.fromJson<String>(
+        json['defaultAllowanceMode'],
+      ),
     );
   }
   @override
@@ -821,6 +930,13 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       'defaultHourlyRate': serializer.toJson<double>(defaultHourlyRate),
       'eurToJpyRate': serializer.toJson<double>(eurToJpyRate),
       'themeMode': serializer.toJson<String>(themeMode),
+      'defaultAllowanceEnabled': serializer.toJson<bool>(
+        defaultAllowanceEnabled,
+      ),
+      'defaultAllowanceRatePercent': serializer.toJson<double>(
+        defaultAllowanceRatePercent,
+      ),
+      'defaultAllowanceMode': serializer.toJson<String>(defaultAllowanceMode),
     };
   }
 
@@ -850,6 +966,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     double? defaultHourlyRate,
     double? eurToJpyRate,
     String? themeMode,
+    bool? defaultAllowanceEnabled,
+    double? defaultAllowanceRatePercent,
+    String? defaultAllowanceMode,
   }) => BusinessProfile(
     id: id ?? this.id,
     legalName: legalName ?? this.legalName,
@@ -878,6 +997,11 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
     eurToJpyRate: eurToJpyRate ?? this.eurToJpyRate,
     themeMode: themeMode ?? this.themeMode,
+    defaultAllowanceEnabled:
+        defaultAllowanceEnabled ?? this.defaultAllowanceEnabled,
+    defaultAllowanceRatePercent:
+        defaultAllowanceRatePercent ?? this.defaultAllowanceRatePercent,
+    defaultAllowanceMode: defaultAllowanceMode ?? this.defaultAllowanceMode,
   );
   BusinessProfile copyWithCompanion(BusinessProfilesCompanion data) {
     return BusinessProfile(
@@ -928,6 +1052,15 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           ? data.eurToJpyRate.value
           : this.eurToJpyRate,
       themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
+      defaultAllowanceEnabled: data.defaultAllowanceEnabled.present
+          ? data.defaultAllowanceEnabled.value
+          : this.defaultAllowanceEnabled,
+      defaultAllowanceRatePercent: data.defaultAllowanceRatePercent.present
+          ? data.defaultAllowanceRatePercent.value
+          : this.defaultAllowanceRatePercent,
+      defaultAllowanceMode: data.defaultAllowanceMode.present
+          ? data.defaultAllowanceMode.value
+          : this.defaultAllowanceMode,
     );
   }
 
@@ -958,7 +1091,10 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           ..write('signaturePath: $signaturePath, ')
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
           ..write('eurToJpyRate: $eurToJpyRate, ')
-          ..write('themeMode: $themeMode')
+          ..write('themeMode: $themeMode, ')
+          ..write('defaultAllowanceEnabled: $defaultAllowanceEnabled, ')
+          ..write('defaultAllowanceRatePercent: $defaultAllowanceRatePercent, ')
+          ..write('defaultAllowanceMode: $defaultAllowanceMode')
           ..write(')'))
         .toString();
   }
@@ -990,6 +1126,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     defaultHourlyRate,
     eurToJpyRate,
     themeMode,
+    defaultAllowanceEnabled,
+    defaultAllowanceRatePercent,
+    defaultAllowanceMode,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1019,7 +1158,11 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           other.signaturePath == this.signaturePath &&
           other.defaultHourlyRate == this.defaultHourlyRate &&
           other.eurToJpyRate == this.eurToJpyRate &&
-          other.themeMode == this.themeMode);
+          other.themeMode == this.themeMode &&
+          other.defaultAllowanceEnabled == this.defaultAllowanceEnabled &&
+          other.defaultAllowanceRatePercent ==
+              this.defaultAllowanceRatePercent &&
+          other.defaultAllowanceMode == this.defaultAllowanceMode);
 }
 
 class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
@@ -1048,6 +1191,9 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
   final Value<double> defaultHourlyRate;
   final Value<double> eurToJpyRate;
   final Value<String> themeMode;
+  final Value<bool> defaultAllowanceEnabled;
+  final Value<double> defaultAllowanceRatePercent;
+  final Value<String> defaultAllowanceMode;
   final Value<int> rowid;
   const BusinessProfilesCompanion({
     this.id = const Value.absent(),
@@ -1075,6 +1221,9 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     this.defaultHourlyRate = const Value.absent(),
     this.eurToJpyRate = const Value.absent(),
     this.themeMode = const Value.absent(),
+    this.defaultAllowanceEnabled = const Value.absent(),
+    this.defaultAllowanceRatePercent = const Value.absent(),
+    this.defaultAllowanceMode = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   BusinessProfilesCompanion.insert({
@@ -1103,6 +1252,9 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     this.defaultHourlyRate = const Value.absent(),
     this.eurToJpyRate = const Value.absent(),
     this.themeMode = const Value.absent(),
+    this.defaultAllowanceEnabled = const Value.absent(),
+    this.defaultAllowanceRatePercent = const Value.absent(),
+    this.defaultAllowanceMode = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id);
   static Insertable<BusinessProfile> custom({
@@ -1131,6 +1283,9 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     Expression<double>? defaultHourlyRate,
     Expression<double>? eurToJpyRate,
     Expression<String>? themeMode,
+    Expression<bool>? defaultAllowanceEnabled,
+    Expression<double>? defaultAllowanceRatePercent,
+    Expression<String>? defaultAllowanceMode,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1160,6 +1315,12 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
       if (defaultHourlyRate != null) 'default_hourly_rate': defaultHourlyRate,
       if (eurToJpyRate != null) 'eur_to_jpy_rate': eurToJpyRate,
       if (themeMode != null) 'theme_mode': themeMode,
+      if (defaultAllowanceEnabled != null)
+        'default_allowance_enabled': defaultAllowanceEnabled,
+      if (defaultAllowanceRatePercent != null)
+        'default_allowance_rate_percent': defaultAllowanceRatePercent,
+      if (defaultAllowanceMode != null)
+        'default_allowance_mode': defaultAllowanceMode,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1190,6 +1351,9 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     Value<double>? defaultHourlyRate,
     Value<double>? eurToJpyRate,
     Value<String>? themeMode,
+    Value<bool>? defaultAllowanceEnabled,
+    Value<double>? defaultAllowanceRatePercent,
+    Value<String>? defaultAllowanceMode,
     Value<int>? rowid,
   }) {
     return BusinessProfilesCompanion(
@@ -1218,6 +1382,11 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
       defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
       eurToJpyRate: eurToJpyRate ?? this.eurToJpyRate,
       themeMode: themeMode ?? this.themeMode,
+      defaultAllowanceEnabled:
+          defaultAllowanceEnabled ?? this.defaultAllowanceEnabled,
+      defaultAllowanceRatePercent:
+          defaultAllowanceRatePercent ?? this.defaultAllowanceRatePercent,
+      defaultAllowanceMode: defaultAllowanceMode ?? this.defaultAllowanceMode,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1302,6 +1471,21 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     if (themeMode.present) {
       map['theme_mode'] = Variable<String>(themeMode.value);
     }
+    if (defaultAllowanceEnabled.present) {
+      map['default_allowance_enabled'] = Variable<bool>(
+        defaultAllowanceEnabled.value,
+      );
+    }
+    if (defaultAllowanceRatePercent.present) {
+      map['default_allowance_rate_percent'] = Variable<double>(
+        defaultAllowanceRatePercent.value,
+      );
+    }
+    if (defaultAllowanceMode.present) {
+      map['default_allowance_mode'] = Variable<String>(
+        defaultAllowanceMode.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1336,6 +1520,9 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
           ..write('eurToJpyRate: $eurToJpyRate, ')
           ..write('themeMode: $themeMode, ')
+          ..write('defaultAllowanceEnabled: $defaultAllowanceEnabled, ')
+          ..write('defaultAllowanceRatePercent: $defaultAllowanceRatePercent, ')
+          ..write('defaultAllowanceMode: $defaultAllowanceMode, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2933,6 +3120,57 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _allowanceEnabledMeta = const VerificationMeta(
+    'allowanceEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> allowanceEnabled = GeneratedColumn<bool>(
+    'allowance_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("allowance_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _allowanceRatePercentMeta =
+      const VerificationMeta('allowanceRatePercent');
+  @override
+  late final GeneratedColumn<double> allowanceRatePercent =
+      GeneratedColumn<double>(
+        'allowance_rate_percent',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0),
+      );
+  static const VerificationMeta _allowanceModeMeta = const VerificationMeta(
+    'allowanceMode',
+  );
+  @override
+  late final GeneratedColumn<String> allowanceMode = GeneratedColumn<String>(
+    'allowance_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('surcharge'),
+  );
+  static const VerificationMeta _allowanceMinorMeta = const VerificationMeta(
+    'allowanceMinor',
+  );
+  @override
+  late final GeneratedColumn<int> allowanceMinor = GeneratedColumn<int>(
+    'allowance_minor',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _totalMinorMeta = const VerificationMeta(
     'totalMinor',
   );
@@ -2982,6 +3220,10 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
     notes,
     subtotalMinor,
     taxMinor,
+    allowanceEnabled,
+    allowanceRatePercent,
+    allowanceMode,
+    allowanceMinor,
     totalMinor,
     paidDate,
     createdAt,
@@ -3092,6 +3334,42 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
         taxMinor.isAcceptableOrUnknown(data['tax_minor']!, _taxMinorMeta),
       );
     }
+    if (data.containsKey('allowance_enabled')) {
+      context.handle(
+        _allowanceEnabledMeta,
+        allowanceEnabled.isAcceptableOrUnknown(
+          data['allowance_enabled']!,
+          _allowanceEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('allowance_rate_percent')) {
+      context.handle(
+        _allowanceRatePercentMeta,
+        allowanceRatePercent.isAcceptableOrUnknown(
+          data['allowance_rate_percent']!,
+          _allowanceRatePercentMeta,
+        ),
+      );
+    }
+    if (data.containsKey('allowance_mode')) {
+      context.handle(
+        _allowanceModeMeta,
+        allowanceMode.isAcceptableOrUnknown(
+          data['allowance_mode']!,
+          _allowanceModeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('allowance_minor')) {
+      context.handle(
+        _allowanceMinorMeta,
+        allowanceMinor.isAcceptableOrUnknown(
+          data['allowance_minor']!,
+          _allowanceMinorMeta,
+        ),
+      );
+    }
     if (data.containsKey('total_minor')) {
       context.handle(
         _totalMinorMeta,
@@ -3173,6 +3451,22 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
         DriftSqlType.int,
         data['${effectivePrefix}tax_minor'],
       )!,
+      allowanceEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}allowance_enabled'],
+      )!,
+      allowanceRatePercent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}allowance_rate_percent'],
+      )!,
+      allowanceMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}allowance_mode'],
+      )!,
+      allowanceMinor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}allowance_minor'],
+      )!,
       totalMinor: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}total_minor'],
@@ -3213,6 +3507,17 @@ class Invoice extends DataClass implements Insertable<Invoice> {
   final String notes;
   final int subtotalMinor;
   final int taxMinor;
+
+  /// The contractor tax allowance charged, as settled when the invoice was
+  /// saved. Stored rather than recomputed so an issued invoice stays the
+  /// document the client received, even if the default rate later changes.
+  ///
+  /// Defaults to off with a zero amount, which is what every invoice written
+  /// before this feature carries — their totals are untouched.
+  final bool allowanceEnabled;
+  final double allowanceRatePercent;
+  final String allowanceMode;
+  final int allowanceMinor;
   final int totalMinor;
   final DateTime? paidDate;
   final DateTime createdAt;
@@ -3230,6 +3535,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     required this.notes,
     required this.subtotalMinor,
     required this.taxMinor,
+    required this.allowanceEnabled,
+    required this.allowanceRatePercent,
+    required this.allowanceMode,
+    required this.allowanceMinor,
     required this.totalMinor,
     this.paidDate,
     required this.createdAt,
@@ -3250,6 +3559,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     map['notes'] = Variable<String>(notes);
     map['subtotal_minor'] = Variable<int>(subtotalMinor);
     map['tax_minor'] = Variable<int>(taxMinor);
+    map['allowance_enabled'] = Variable<bool>(allowanceEnabled);
+    map['allowance_rate_percent'] = Variable<double>(allowanceRatePercent);
+    map['allowance_mode'] = Variable<String>(allowanceMode);
+    map['allowance_minor'] = Variable<int>(allowanceMinor);
     map['total_minor'] = Variable<int>(totalMinor);
     if (!nullToAbsent || paidDate != null) {
       map['paid_date'] = Variable<DateTime>(paidDate);
@@ -3273,6 +3586,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       notes: Value(notes),
       subtotalMinor: Value(subtotalMinor),
       taxMinor: Value(taxMinor),
+      allowanceEnabled: Value(allowanceEnabled),
+      allowanceRatePercent: Value(allowanceRatePercent),
+      allowanceMode: Value(allowanceMode),
+      allowanceMinor: Value(allowanceMinor),
       totalMinor: Value(totalMinor),
       paidDate: paidDate == null && nullToAbsent
           ? const Value.absent()
@@ -3300,6 +3617,12 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       notes: serializer.fromJson<String>(json['notes']),
       subtotalMinor: serializer.fromJson<int>(json['subtotalMinor']),
       taxMinor: serializer.fromJson<int>(json['taxMinor']),
+      allowanceEnabled: serializer.fromJson<bool>(json['allowanceEnabled']),
+      allowanceRatePercent: serializer.fromJson<double>(
+        json['allowanceRatePercent'],
+      ),
+      allowanceMode: serializer.fromJson<String>(json['allowanceMode']),
+      allowanceMinor: serializer.fromJson<int>(json['allowanceMinor']),
       totalMinor: serializer.fromJson<int>(json['totalMinor']),
       paidDate: serializer.fromJson<DateTime?>(json['paidDate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -3322,6 +3645,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       'notes': serializer.toJson<String>(notes),
       'subtotalMinor': serializer.toJson<int>(subtotalMinor),
       'taxMinor': serializer.toJson<int>(taxMinor),
+      'allowanceEnabled': serializer.toJson<bool>(allowanceEnabled),
+      'allowanceRatePercent': serializer.toJson<double>(allowanceRatePercent),
+      'allowanceMode': serializer.toJson<String>(allowanceMode),
+      'allowanceMinor': serializer.toJson<int>(allowanceMinor),
       'totalMinor': serializer.toJson<int>(totalMinor),
       'paidDate': serializer.toJson<DateTime?>(paidDate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -3342,6 +3669,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     String? notes,
     int? subtotalMinor,
     int? taxMinor,
+    bool? allowanceEnabled,
+    double? allowanceRatePercent,
+    String? allowanceMode,
+    int? allowanceMinor,
     int? totalMinor,
     Value<DateTime?> paidDate = const Value.absent(),
     DateTime? createdAt,
@@ -3359,6 +3690,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     notes: notes ?? this.notes,
     subtotalMinor: subtotalMinor ?? this.subtotalMinor,
     taxMinor: taxMinor ?? this.taxMinor,
+    allowanceEnabled: allowanceEnabled ?? this.allowanceEnabled,
+    allowanceRatePercent: allowanceRatePercent ?? this.allowanceRatePercent,
+    allowanceMode: allowanceMode ?? this.allowanceMode,
+    allowanceMinor: allowanceMinor ?? this.allowanceMinor,
     totalMinor: totalMinor ?? this.totalMinor,
     paidDate: paidDate.present ? paidDate.value : this.paidDate,
     createdAt: createdAt ?? this.createdAt,
@@ -3384,6 +3719,18 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           ? data.subtotalMinor.value
           : this.subtotalMinor,
       taxMinor: data.taxMinor.present ? data.taxMinor.value : this.taxMinor,
+      allowanceEnabled: data.allowanceEnabled.present
+          ? data.allowanceEnabled.value
+          : this.allowanceEnabled,
+      allowanceRatePercent: data.allowanceRatePercent.present
+          ? data.allowanceRatePercent.value
+          : this.allowanceRatePercent,
+      allowanceMode: data.allowanceMode.present
+          ? data.allowanceMode.value
+          : this.allowanceMode,
+      allowanceMinor: data.allowanceMinor.present
+          ? data.allowanceMinor.value
+          : this.allowanceMinor,
       totalMinor: data.totalMinor.present
           ? data.totalMinor.value
           : this.totalMinor,
@@ -3408,6 +3755,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           ..write('notes: $notes, ')
           ..write('subtotalMinor: $subtotalMinor, ')
           ..write('taxMinor: $taxMinor, ')
+          ..write('allowanceEnabled: $allowanceEnabled, ')
+          ..write('allowanceRatePercent: $allowanceRatePercent, ')
+          ..write('allowanceMode: $allowanceMode, ')
+          ..write('allowanceMinor: $allowanceMinor, ')
           ..write('totalMinor: $totalMinor, ')
           ..write('paidDate: $paidDate, ')
           ..write('createdAt: $createdAt')
@@ -3430,6 +3781,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     notes,
     subtotalMinor,
     taxMinor,
+    allowanceEnabled,
+    allowanceRatePercent,
+    allowanceMode,
+    allowanceMinor,
     totalMinor,
     paidDate,
     createdAt,
@@ -3451,6 +3806,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           other.notes == this.notes &&
           other.subtotalMinor == this.subtotalMinor &&
           other.taxMinor == this.taxMinor &&
+          other.allowanceEnabled == this.allowanceEnabled &&
+          other.allowanceRatePercent == this.allowanceRatePercent &&
+          other.allowanceMode == this.allowanceMode &&
+          other.allowanceMinor == this.allowanceMinor &&
           other.totalMinor == this.totalMinor &&
           other.paidDate == this.paidDate &&
           other.createdAt == this.createdAt);
@@ -3470,6 +3829,10 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
   final Value<String> notes;
   final Value<int> subtotalMinor;
   final Value<int> taxMinor;
+  final Value<bool> allowanceEnabled;
+  final Value<double> allowanceRatePercent;
+  final Value<String> allowanceMode;
+  final Value<int> allowanceMinor;
   final Value<int> totalMinor;
   final Value<DateTime?> paidDate;
   final Value<DateTime> createdAt;
@@ -3488,6 +3851,10 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     this.notes = const Value.absent(),
     this.subtotalMinor = const Value.absent(),
     this.taxMinor = const Value.absent(),
+    this.allowanceEnabled = const Value.absent(),
+    this.allowanceRatePercent = const Value.absent(),
+    this.allowanceMode = const Value.absent(),
+    this.allowanceMinor = const Value.absent(),
     this.totalMinor = const Value.absent(),
     this.paidDate = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -3507,6 +3874,10 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     this.notes = const Value.absent(),
     this.subtotalMinor = const Value.absent(),
     this.taxMinor = const Value.absent(),
+    this.allowanceEnabled = const Value.absent(),
+    this.allowanceRatePercent = const Value.absent(),
+    this.allowanceMode = const Value.absent(),
+    this.allowanceMinor = const Value.absent(),
     this.totalMinor = const Value.absent(),
     this.paidDate = const Value.absent(),
     required DateTime createdAt,
@@ -3531,6 +3902,10 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     Expression<String>? notes,
     Expression<int>? subtotalMinor,
     Expression<int>? taxMinor,
+    Expression<bool>? allowanceEnabled,
+    Expression<double>? allowanceRatePercent,
+    Expression<String>? allowanceMode,
+    Expression<int>? allowanceMinor,
     Expression<int>? totalMinor,
     Expression<DateTime>? paidDate,
     Expression<DateTime>? createdAt,
@@ -3550,6 +3925,11 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
       if (notes != null) 'notes': notes,
       if (subtotalMinor != null) 'subtotal_minor': subtotalMinor,
       if (taxMinor != null) 'tax_minor': taxMinor,
+      if (allowanceEnabled != null) 'allowance_enabled': allowanceEnabled,
+      if (allowanceRatePercent != null)
+        'allowance_rate_percent': allowanceRatePercent,
+      if (allowanceMode != null) 'allowance_mode': allowanceMode,
+      if (allowanceMinor != null) 'allowance_minor': allowanceMinor,
       if (totalMinor != null) 'total_minor': totalMinor,
       if (paidDate != null) 'paid_date': paidDate,
       if (createdAt != null) 'created_at': createdAt,
@@ -3571,6 +3951,10 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     Value<String>? notes,
     Value<int>? subtotalMinor,
     Value<int>? taxMinor,
+    Value<bool>? allowanceEnabled,
+    Value<double>? allowanceRatePercent,
+    Value<String>? allowanceMode,
+    Value<int>? allowanceMinor,
     Value<int>? totalMinor,
     Value<DateTime?>? paidDate,
     Value<DateTime>? createdAt,
@@ -3590,6 +3974,10 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
       notes: notes ?? this.notes,
       subtotalMinor: subtotalMinor ?? this.subtotalMinor,
       taxMinor: taxMinor ?? this.taxMinor,
+      allowanceEnabled: allowanceEnabled ?? this.allowanceEnabled,
+      allowanceRatePercent: allowanceRatePercent ?? this.allowanceRatePercent,
+      allowanceMode: allowanceMode ?? this.allowanceMode,
+      allowanceMinor: allowanceMinor ?? this.allowanceMinor,
       totalMinor: totalMinor ?? this.totalMinor,
       paidDate: paidDate ?? this.paidDate,
       createdAt: createdAt ?? this.createdAt,
@@ -3639,6 +4027,20 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     if (taxMinor.present) {
       map['tax_minor'] = Variable<int>(taxMinor.value);
     }
+    if (allowanceEnabled.present) {
+      map['allowance_enabled'] = Variable<bool>(allowanceEnabled.value);
+    }
+    if (allowanceRatePercent.present) {
+      map['allowance_rate_percent'] = Variable<double>(
+        allowanceRatePercent.value,
+      );
+    }
+    if (allowanceMode.present) {
+      map['allowance_mode'] = Variable<String>(allowanceMode.value);
+    }
+    if (allowanceMinor.present) {
+      map['allowance_minor'] = Variable<int>(allowanceMinor.value);
+    }
     if (totalMinor.present) {
       map['total_minor'] = Variable<int>(totalMinor.value);
     }
@@ -3670,6 +4072,10 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
           ..write('notes: $notes, ')
           ..write('subtotalMinor: $subtotalMinor, ')
           ..write('taxMinor: $taxMinor, ')
+          ..write('allowanceEnabled: $allowanceEnabled, ')
+          ..write('allowanceRatePercent: $allowanceRatePercent, ')
+          ..write('allowanceMode: $allowanceMode, ')
+          ..write('allowanceMinor: $allowanceMinor, ')
           ..write('totalMinor: $totalMinor, ')
           ..write('paidDate: $paidDate, ')
           ..write('createdAt: $createdAt, ')
@@ -6143,6 +6549,9 @@ typedef $$BusinessProfilesTableCreateCompanionBuilder =
       Value<double> defaultHourlyRate,
       Value<double> eurToJpyRate,
       Value<String> themeMode,
+      Value<bool> defaultAllowanceEnabled,
+      Value<double> defaultAllowanceRatePercent,
+      Value<String> defaultAllowanceMode,
       Value<int> rowid,
     });
 typedef $$BusinessProfilesTableUpdateCompanionBuilder =
@@ -6172,6 +6581,9 @@ typedef $$BusinessProfilesTableUpdateCompanionBuilder =
       Value<double> defaultHourlyRate,
       Value<double> eurToJpyRate,
       Value<String> themeMode,
+      Value<bool> defaultAllowanceEnabled,
+      Value<double> defaultAllowanceRatePercent,
+      Value<String> defaultAllowanceMode,
       Value<int> rowid,
     });
 
@@ -6306,6 +6718,21 @@ class $$BusinessProfilesTableFilterComposer
 
   ColumnFilters<String> get themeMode => $composableBuilder(
     column: $table.themeMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get defaultAllowanceEnabled => $composableBuilder(
+    column: $table.defaultAllowanceEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get defaultAllowanceRatePercent => $composableBuilder(
+    column: $table.defaultAllowanceRatePercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultAllowanceMode => $composableBuilder(
+    column: $table.defaultAllowanceMode,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6443,6 +6870,21 @@ class $$BusinessProfilesTableOrderingComposer
     column: $table.themeMode,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get defaultAllowanceEnabled => $composableBuilder(
+    column: $table.defaultAllowanceEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get defaultAllowanceRatePercent => $composableBuilder(
+    column: $table.defaultAllowanceRatePercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get defaultAllowanceMode => $composableBuilder(
+    column: $table.defaultAllowanceMode,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$BusinessProfilesTableAnnotationComposer
@@ -6550,6 +6992,21 @@ class $$BusinessProfilesTableAnnotationComposer
 
   GeneratedColumn<String> get themeMode =>
       $composableBuilder(column: $table.themeMode, builder: (column) => column);
+
+  GeneratedColumn<bool> get defaultAllowanceEnabled => $composableBuilder(
+    column: $table.defaultAllowanceEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get defaultAllowanceRatePercent => $composableBuilder(
+    column: $table.defaultAllowanceRatePercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get defaultAllowanceMode => $composableBuilder(
+    column: $table.defaultAllowanceMode,
+    builder: (column) => column,
+  );
 }
 
 class $$BusinessProfilesTableTableManager
@@ -6614,6 +7071,10 @@ class $$BusinessProfilesTableTableManager
                 Value<double> defaultHourlyRate = const Value.absent(),
                 Value<double> eurToJpyRate = const Value.absent(),
                 Value<String> themeMode = const Value.absent(),
+                Value<bool> defaultAllowanceEnabled = const Value.absent(),
+                Value<double> defaultAllowanceRatePercent =
+                    const Value.absent(),
+                Value<String> defaultAllowanceMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BusinessProfilesCompanion(
                 id: id,
@@ -6641,6 +7102,9 @@ class $$BusinessProfilesTableTableManager
                 defaultHourlyRate: defaultHourlyRate,
                 eurToJpyRate: eurToJpyRate,
                 themeMode: themeMode,
+                defaultAllowanceEnabled: defaultAllowanceEnabled,
+                defaultAllowanceRatePercent: defaultAllowanceRatePercent,
+                defaultAllowanceMode: defaultAllowanceMode,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6670,6 +7134,10 @@ class $$BusinessProfilesTableTableManager
                 Value<double> defaultHourlyRate = const Value.absent(),
                 Value<double> eurToJpyRate = const Value.absent(),
                 Value<String> themeMode = const Value.absent(),
+                Value<bool> defaultAllowanceEnabled = const Value.absent(),
+                Value<double> defaultAllowanceRatePercent =
+                    const Value.absent(),
+                Value<String> defaultAllowanceMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => BusinessProfilesCompanion.insert(
                 id: id,
@@ -6697,6 +7165,9 @@ class $$BusinessProfilesTableTableManager
                 defaultHourlyRate: defaultHourlyRate,
                 eurToJpyRate: eurToJpyRate,
                 themeMode: themeMode,
+                defaultAllowanceEnabled: defaultAllowanceEnabled,
+                defaultAllowanceRatePercent: defaultAllowanceRatePercent,
+                defaultAllowanceMode: defaultAllowanceMode,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -7929,6 +8400,10 @@ typedef $$InvoicesTableCreateCompanionBuilder =
       Value<String> notes,
       Value<int> subtotalMinor,
       Value<int> taxMinor,
+      Value<bool> allowanceEnabled,
+      Value<double> allowanceRatePercent,
+      Value<String> allowanceMode,
+      Value<int> allowanceMinor,
       Value<int> totalMinor,
       Value<DateTime?> paidDate,
       required DateTime createdAt,
@@ -7949,6 +8424,10 @@ typedef $$InvoicesTableUpdateCompanionBuilder =
       Value<String> notes,
       Value<int> subtotalMinor,
       Value<int> taxMinor,
+      Value<bool> allowanceEnabled,
+      Value<double> allowanceRatePercent,
+      Value<String> allowanceMode,
+      Value<int> allowanceMinor,
       Value<int> totalMinor,
       Value<DateTime?> paidDate,
       Value<DateTime> createdAt,
@@ -8079,6 +8558,26 @@ class $$InvoicesTableFilterComposer
 
   ColumnFilters<int> get taxMinor => $composableBuilder(
     column: $table.taxMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get allowanceEnabled => $composableBuilder(
+    column: $table.allowanceEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get allowanceRatePercent => $composableBuilder(
+    column: $table.allowanceRatePercent,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get allowanceMode => $composableBuilder(
+    column: $table.allowanceMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get allowanceMinor => $composableBuilder(
+    column: $table.allowanceMinor,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8240,6 +8739,26 @@ class $$InvoicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get allowanceEnabled => $composableBuilder(
+    column: $table.allowanceEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get allowanceRatePercent => $composableBuilder(
+    column: $table.allowanceRatePercent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get allowanceMode => $composableBuilder(
+    column: $table.allowanceMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get allowanceMinor => $composableBuilder(
+    column: $table.allowanceMinor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get totalMinor => $composableBuilder(
     column: $table.totalMinor,
     builder: (column) => ColumnOrderings(column),
@@ -8329,6 +8848,26 @@ class $$InvoicesTableAnnotationComposer
 
   GeneratedColumn<int> get taxMinor =>
       $composableBuilder(column: $table.taxMinor, builder: (column) => column);
+
+  GeneratedColumn<bool> get allowanceEnabled => $composableBuilder(
+    column: $table.allowanceEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get allowanceRatePercent => $composableBuilder(
+    column: $table.allowanceRatePercent,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get allowanceMode => $composableBuilder(
+    column: $table.allowanceMode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get allowanceMinor => $composableBuilder(
+    column: $table.allowanceMinor,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get totalMinor => $composableBuilder(
     column: $table.totalMinor,
@@ -8460,6 +8999,10 @@ class $$InvoicesTableTableManager
                 Value<String> notes = const Value.absent(),
                 Value<int> subtotalMinor = const Value.absent(),
                 Value<int> taxMinor = const Value.absent(),
+                Value<bool> allowanceEnabled = const Value.absent(),
+                Value<double> allowanceRatePercent = const Value.absent(),
+                Value<String> allowanceMode = const Value.absent(),
+                Value<int> allowanceMinor = const Value.absent(),
                 Value<int> totalMinor = const Value.absent(),
                 Value<DateTime?> paidDate = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -8478,6 +9021,10 @@ class $$InvoicesTableTableManager
                 notes: notes,
                 subtotalMinor: subtotalMinor,
                 taxMinor: taxMinor,
+                allowanceEnabled: allowanceEnabled,
+                allowanceRatePercent: allowanceRatePercent,
+                allowanceMode: allowanceMode,
+                allowanceMinor: allowanceMinor,
                 totalMinor: totalMinor,
                 paidDate: paidDate,
                 createdAt: createdAt,
@@ -8498,6 +9045,10 @@ class $$InvoicesTableTableManager
                 Value<String> notes = const Value.absent(),
                 Value<int> subtotalMinor = const Value.absent(),
                 Value<int> taxMinor = const Value.absent(),
+                Value<bool> allowanceEnabled = const Value.absent(),
+                Value<double> allowanceRatePercent = const Value.absent(),
+                Value<String> allowanceMode = const Value.absent(),
+                Value<int> allowanceMinor = const Value.absent(),
                 Value<int> totalMinor = const Value.absent(),
                 Value<DateTime?> paidDate = const Value.absent(),
                 required DateTime createdAt,
@@ -8516,6 +9067,10 @@ class $$InvoicesTableTableManager
                 notes: notes,
                 subtotalMinor: subtotalMinor,
                 taxMinor: taxMinor,
+                allowanceEnabled: allowanceEnabled,
+                allowanceRatePercent: allowanceRatePercent,
+                allowanceMode: allowanceMode,
+                allowanceMinor: allowanceMinor,
                 totalMinor: totalMinor,
                 paidDate: paidDate,
                 createdAt: createdAt,

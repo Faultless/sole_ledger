@@ -13,7 +13,11 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(() => initializeDateFormatting());
 
-  Future<void> render({required bool dueDateEnabled, required int lineCount}) async {
+  Future<void> render({
+    required bool dueDateEnabled,
+    required int lineCount,
+    bool allowance = false,
+  }) async {
     final db = AppDatabase(NativeDatabase.memory());
     final repo = AppRepository(db);
     await repo.ensureBusinessProfile();
@@ -52,6 +56,10 @@ void main() {
         issueDate: DateTime(2026, 8, 30),
         dueDate: DateTime(2026, 9, 29),
         dueDateEnabled: Value(dueDateEnabled),
+        allowanceEnabled: Value(allowance),
+        allowanceRatePercent: Value(allowance ? 25 : 0),
+        allowanceMode: const Value('surcharge'),
+        allowanceMinor: Value(allowance ? 200000 : 0),
         createdAt: DateTime(2026, 8, 30),
         notes: const Value('Thanks — payment in EUR please.'),
       ),
@@ -84,4 +92,10 @@ void main() {
   test('renders with a due date', () => render(dueDateEnabled: true, lineCount: 6));
   test('renders without a due date', () => render(dueDateEnabled: false, lineCount: 6));
   test('renders a busy invoice', () => render(dueDateEnabled: true, lineCount: 14));
+  // The allowance adds a totals row and an explanatory note; the page is
+  // fixed-height, so both have to still fit alongside everything else.
+  test('renders with the contractor allowance',
+      () => render(dueDateEnabled: true, lineCount: 6, allowance: true));
+  test('renders a busy invoice with the allowance',
+      () => render(dueDateEnabled: true, lineCount: 14, allowance: true));
 }

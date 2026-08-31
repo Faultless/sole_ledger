@@ -10,6 +10,7 @@ import '../../data/db/database.dart';
 import '../../data/db/db_location.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
+import '../../domain/tax/contractor_allowance.dart';
 import '../../l10n/app_localizations.dart';
 import '../shell/app_shell.dart';
 
@@ -22,6 +23,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _controllers = <String, TextEditingController>{};
   String _currency = 'EUR';
+  bool _allowanceEnabled = true;
+  AllowanceMode _allowanceMode = AllowanceMode.surcharge;
   bool _seeded = false;
   Future<String?> _dbPath = currentDatabasePath();
   bool _justEnabledSync = false;
@@ -51,6 +54,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ? ''
         : p.defaultHourlyRate.toString();
     _c('fxRate').text = p.eurToJpyRate.toStringAsFixed(0);
+    _c('allowanceRate').text = p.defaultAllowanceRatePercent ==
+            p.defaultAllowanceRatePercent.roundToDouble()
+        ? p.defaultAllowanceRatePercent.toStringAsFixed(0)
+        : p.defaultAllowanceRatePercent.toString();
+    _allowanceEnabled = p.defaultAllowanceEnabled;
+    _allowanceMode = AllowanceMode.byName(p.defaultAllowanceMode);
     _currency = p.defaultCurrency;
     _seeded = true;
   }
@@ -90,6 +99,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Value(double.tryParse(_c('rate').text.trim()) ?? 0),
       eurToJpyRate: Value(
           double.tryParse(_c('fxRate').text.replaceAll(',', '.').trim()) ?? 160),
+      defaultAllowanceEnabled: Value(_allowanceEnabled),
+      defaultAllowanceRatePercent: Value(double.tryParse(
+              _c('allowanceRate').text.replaceAll(',', '.').trim()) ??
+          25),
+      defaultAllowanceMode: Value(_allowanceMode.name),
     ));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -380,6 +394,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            SectionHeader(title: l10n.settingsAllowanceTitle),
+            _allowanceCard(context, l10n),
+            const SizedBox(height: 16),
             Card(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Padding(
@@ -525,6 +542,79 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  /// Defaults for the contractor tax allowance on new invoices. Changing them
+  /// never touches an invoice already saved — each invoice keeps the rate and
+  /// mode it was written with.
+  Widget _allowanceCard(BuildContext context, L10n l10n) {
+    final text = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(l10n.invoiceAllowanceEnabled),
+              subtitle: Text(l10n.settingsAllowanceSubtitle),
+              isThreeLine: true,
+              value: _allowanceEnabled,
+              onChanged: (v) => setState(() => _allowanceEnabled = v),
+            ),
+            if (_allowanceEnabled) ...[
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(
+                  width: 110,
+                  child: _field('allowanceRate', l10n.invoiceAllowanceRate,
+                      number: true),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: DropdownButtonFormField<AllowanceMode>(
+                      initialValue: _allowanceMode,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                          labelText: l10n.invoiceAllowanceMode),
+                      items: [
+                        DropdownMenuItem(
+                          value: AllowanceMode.surcharge,
+                          child: Text(l10n.allowanceModeSurcharge,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                        DropdownMenuItem(
+                          value: AllowanceMode.grossUp,
+                          child: Text(l10n.allowanceModeGrossUp,
+                              overflow: TextOverflow.ellipsis),
+                        ),
+                      ],
+                      onChanged: (v) => setState(
+                          () => _allowanceMode = v ?? AllowanceMode.surcharge),
+                    ),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 4),
+              Text(
+                switch (_allowanceMode) {
+                  AllowanceMode.surcharge => l10n.allowanceModeSurchargeHint,
+                  AllowanceMode.grossUp => l10n.allowanceModeGrossUpHint,
+                },
+                style: text.bodySmall,
+              ),
+              const SizedBox(height: 8),
+              Text(l10n.invoiceAllowanceNote,
+                  style: text.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            ],
+          ],
         ),
       ),
     );

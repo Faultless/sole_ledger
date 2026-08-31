@@ -296,6 +296,45 @@ class L10nEn extends L10n {
   String get invoiceThankYou => 'Thank you for your business.';
 
   @override
+  String invoiceAllowance(String rate) {
+    return 'Contractor tax allowance ($rate%)';
+  }
+
+  @override
+  String get invoiceAllowanceNote =>
+      'The contractor tax allowance is a contractual uplift toward the contractor\'s own tax liability. It is not a government tax and no part of it is remitted to a tax authority.';
+
+  @override
+  String get invoiceAllowanceEnabled => 'Add contractor tax allowance';
+
+  @override
+  String get invoiceAllowanceRate => 'Rate (%)';
+
+  @override
+  String get invoiceAllowanceMode => 'How it\'s applied';
+
+  @override
+  String get allowanceModeSurcharge => 'Surcharge — rate × net';
+
+  @override
+  String get allowanceModeGrossUp => 'Gross-up — net survives the rate';
+
+  @override
+  String get allowanceModeSurchargeHint =>
+      'Adds the rate on top of the net. You keep less than the net once the allowance is itself taxed.';
+
+  @override
+  String get allowanceModeGrossUpHint =>
+      'Raises the total so that setting aside the rate leaves the net intact.';
+
+  @override
+  String get settingsAllowanceTitle => 'Contractor tax allowance';
+
+  @override
+  String get settingsAllowanceSubtitle =>
+      'Applied to new invoices by default. Existing invoices keep whatever they were saved with.';
+
+  @override
   String get invoiceSignature => 'Signature';
 
   @override

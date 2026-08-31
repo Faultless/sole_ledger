@@ -58,6 +58,24 @@ void main() {
       timeEntryIds: const [],
     );
 
+    if (version < 10) {
+      for (final c in [
+        'allowance_enabled',
+        'allowance_rate_percent',
+        'allowance_mode',
+        'allowance_minor',
+      ]) {
+        await db.customStatement('ALTER TABLE invoices DROP COLUMN $c');
+      }
+      for (final c in [
+        'default_allowance_enabled',
+        'default_allowance_rate_percent',
+        'default_allowance_mode',
+      ]) {
+        await db.customStatement(
+            'ALTER TABLE business_profiles DROP COLUMN $c');
+      }
+    }
     if (version < 9) {
       await db.customStatement(
           'ALTER TABLE invoices DROP COLUMN due_date_enabled');
@@ -74,8 +92,8 @@ void main() {
     await db.close();
   }
 
-  for (final from in [7, 8]) {
-    test('a v$from ledger opens on v9 with its invoices intact', () async {
+  for (final from in [7, 8, 9]) {
+    test('a v$from ledger opens on v10 with its invoices intact', () async {
       await seedAtVersion(from);
 
       final db = AppDatabase(NativeDatabase(file));
@@ -90,6 +108,13 @@ void main() {
       // The whole point of the default: an invoice written before the toggle
       // existed keeps printing its due date exactly as it always did.
       expect(invoice.dueDateEnabled, isTrue);
+      // An invoice written before the allowance existed is not repriced: it
+      // carries no allowance, and its stored total is the one it was issued
+      // with.
+      expect(invoice.allowanceEnabled, isFalse);
+      expect(invoice.allowanceMinor, 0);
+      expect(invoice.totalMinor, 150000);
+      expect(invoice.revenueMinor, invoice.subtotalMinor);
 
       final lines = await repo.invoiceLines('invoice-1');
       expect(lines, hasLength(1));
@@ -106,11 +131,23 @@ void main() {
     });
   }
 
-  test('a v9 ledger reopens unchanged', () async {
-    await seedAtVersion(9);
+  test('a v10 ledger reopens unchanged', () async {
+    await seedAtVersion(10);
     final db = AppDatabase(NativeDatabase(file));
     final invoice = await AppRepository(db).findInvoice('invoice-1');
     expect(invoice!.dueDateEnabled, isTrue);
+    expect(invoice.allowanceMinor, 0);
+    await db.close();
+  });
+
+  test('an upgraded ledger offers the allowance to new invoices', () async {
+    await seedAtVersion(7);
+    final db = AppDatabase(NativeDatabase(file));
+    final profile = await AppRepository(db).ensureBusinessProfile();
+    // The defaults arrive switched on: this is how tax is added here now.
+    expect(profile.defaultAllowanceEnabled, isTrue);
+    expect(profile.defaultAllowanceRatePercent, 25);
+    expect(profile.defaultAllowanceMode, 'surcharge');
     await db.close();
   });
 }

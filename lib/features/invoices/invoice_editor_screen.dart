@@ -11,6 +11,7 @@ import '../../core/widgets/labels.dart';
 import '../../data/db/database.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
+import '../../domain/tax/contractor_allowance.dart';
 import '../../domain/tax/invoice_totals.dart';
 import '../../domain/tax/vat_treatment.dart';
 import '../../l10n/app_localizations.dart';
@@ -82,6 +83,11 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
   /// recomputed whenever the issue date moves.
   int _termDays = _defaultTermDays;
   int? _dueDayOfMonth;
+  /// The contractor tax allowance for this invoice. New invoices start from
+  /// the business profile's defaults; a saved invoice keeps what it was saved
+  /// with, so reopening an old one never silently reprices it.
+  ContractorAllowance _allowance = ContractorAllowance.none;
+  late final _allowanceRateCtrl = TextEditingController();
   final _poCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   final List<_EditLine> _lines = [];
@@ -113,8 +119,21 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
     if (_editing) {
       _loading = true;
       _loadExisting(widget.invoiceId!);
+    } else {
+      // A fresh invoice adopts the profile's allowance defaults — this is the
+      // standard way tax is added here, so it is on unless turned off.
+      final profile = ref.read(businessProfileProvider).value;
+      _allowance = ContractorAllowance(
+        enabled: profile?.defaultAllowanceEnabled ?? true,
+        ratePercent: profile?.defaultAllowanceRatePercent ?? 25,
+        mode: AllowanceMode.byName(profile?.defaultAllowanceMode ?? 'surcharge'),
+      );
+      _allowanceRateCtrl.text = _trimRate(_allowance.ratePercent);
     }
   }
+
+  static String _trimRate(double v) =>
+      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
 
   Future<void> _loadExisting(String id) async {
     final repo = ref.read(repositoryProvider);
@@ -134,6 +153,12 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
       _issueDate = invoice.issueDate;
       _dueDate = invoice.dueDate;
       _dueDateEnabled = invoice.dueDateEnabled;
+      _allowance = ContractorAllowance(
+        enabled: invoice.allowanceEnabled,
+        ratePercent: invoice.allowanceRatePercent,
+        mode: AllowanceMode.byName(invoice.allowanceMode),
+      );
+      _allowanceRateCtrl.text = _trimRate(invoice.allowanceRatePercent);
       if (client != null) _adoptTerms(client);
       // A saved invoice keeps the date it was saved with; re-picking a client
       // or redating it must not silently move an agreed deadline.
@@ -158,6 +183,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
   void dispose() {
     _poCtrl.dispose();
     _notesCtrl.dispose();
+    _allowanceRateCtrl.dispose();
     for (final l in _lines) {
       l.dispose();
     }
@@ -264,7 +290,8 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
               treatment: l.treatment,
             ))
         .toList();
-    return InvoiceCalculator.compute(taxable, _currency);
+    return InvoiceCalculator.compute(taxable, _currency,
+        allowance: _allowance);
   }
 
   Future<void> _save() async {
@@ -306,6 +333,10 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
           notes: Value(_notesCtrl.text.trim()),
           subtotalMinor: Value(totals.net.minorUnits),
           taxMinor: Value(totals.taxTotal.minorUnits),
+          allowanceEnabled: Value(_allowance.enabled),
+          allowanceRatePercent: Value(_allowance.ratePercent),
+          allowanceMode: Value(_allowance.mode.name),
+          allowanceMinor: Value(totals.allowanceAmount.minorUnits),
           totalMinor: Value(totals.gross.minorUnits),
         ),
         lines: lineCompanions,
@@ -329,6 +360,10 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
           notes: Value(_notesCtrl.text.trim()),
           subtotalMinor: Value(totals.net.minorUnits),
           taxMinor: Value(totals.taxTotal.minorUnits),
+          allowanceEnabled: Value(_allowance.enabled),
+          allowanceRatePercent: Value(_allowance.ratePercent),
+          allowanceMode: Value(_allowance.mode.name),
+          allowanceMinor: Value(totals.allowanceAmount.minorUnits),
           totalMinor: Value(totals.gross.minorUnits),
         ),
         lines: lineCompanions,
@@ -467,6 +502,13 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
               ),
             for (final line in _lines) _lineCard(line, l10n),
             const SizedBox(height: 16),
+            _AllowanceCard(
+              allowance: _allowance,
+              rateCtrl: _allowanceRateCtrl,
+              l10n: l10n,
+              onChanged: (a) => setState(() => _allowance = a),
+            ),
+            const SizedBox(height: 12),
             _TotalsCard(totals: totals, fmt: fmt, l10n: l10n),
             const SizedBox(height: 12),
             TextField(
@@ -599,6 +641,100 @@ class _DateField extends StatelessWidget {
   }
 }
 
+/// Editor for the contractor tax allowance: whether it applies, at what rate,
+/// and how it's derived. The two modes differ in a way that is easy to get
+/// wrong, so the card states the consequence of the chosen one inline.
+class _AllowanceCard extends StatelessWidget {
+  const _AllowanceCard({
+    required this.allowance,
+    required this.rateCtrl,
+    required this.l10n,
+    required this.onChanged,
+  });
+
+  final ContractorAllowance allowance;
+  final TextEditingController rateCtrl;
+  final L10n l10n;
+  final ValueChanged<ContractorAllowance> onChanged;
+
+  /// The rate as it should read on the invoice: "25", not "25.0".
+  static String rateLabel(ContractorAllowance a) {
+    final r = a.effectiveRatePercent;
+    return r == r.roundToDouble() ? r.toStringAsFixed(0) : r.toString();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: Text(l10n.invoiceAllowanceEnabled),
+              value: allowance.enabled,
+              onChanged: (v) => onChanged(allowance.copyWith(enabled: v)),
+            ),
+            if (allowance.enabled) ...[
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(
+                  width: 110,
+                  child: TextField(
+                    controller: rateCtrl,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration:
+                        InputDecoration(labelText: l10n.invoiceAllowanceRate),
+                    onChanged: (v) => onChanged(allowance.copyWith(
+                      ratePercent:
+                          double.tryParse(v.replaceAll(',', '.').trim()) ?? 0,
+                    )),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<AllowanceMode>(
+                    initialValue: allowance.mode,
+                    isExpanded: true,
+                    decoration:
+                        InputDecoration(labelText: l10n.invoiceAllowanceMode),
+                    items: [
+                      DropdownMenuItem(
+                        value: AllowanceMode.surcharge,
+                        child: Text(l10n.allowanceModeSurcharge,
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      DropdownMenuItem(
+                        value: AllowanceMode.grossUp,
+                        child: Text(l10n.allowanceModeGrossUp,
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                    ],
+                    onChanged: (v) => onChanged(allowance.copyWith(
+                        mode: v ?? AllowanceMode.surcharge)),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              Text(
+                switch (allowance.mode) {
+                  AllowanceMode.surcharge => l10n.allowanceModeSurchargeHint,
+                  AllowanceMode.grossUp => l10n.allowanceModeGrossUpHint,
+                },
+                style: text.bodySmall,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _TotalsCard extends StatelessWidget {
   const _TotalsCard(
       {required this.totals, required this.fmt, required this.l10n});
@@ -619,6 +755,12 @@ class _TotalsCard extends StatelessWidget {
               if (!g.tax.isZero)
                 _row(context, vatTreatmentLabel(l10n, g.treatment),
                     fmt.money(g.tax)),
+            if (totals.hasAllowance)
+              _row(
+                  context,
+                  l10n.invoiceAllowance(
+                      _AllowanceCard.rateLabel(totals.allowance)),
+                  fmt.money(totals.allowanceAmount)),
             const Divider(),
             _row(context, l10n.commonTotal, fmt.money(totals.gross), bold: true),
             if (totals.printsReverseChargeStatement) ...[

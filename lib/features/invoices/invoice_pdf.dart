@@ -83,6 +83,17 @@ abstract final class InvoicePdf {
                           color: _muted,
                           fontStyle: pw.FontStyle.italic)),
                 ),
+            // Says plainly that the allowance is not a tax, so the client
+            // cannot mistake it for VAT they might try to reclaim.
+            if (invoice.allowanceMinor != 0)
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 4),
+                child: pw.Text(l.invoiceAllowanceNote,
+                    style: pw.TextStyle(
+                        fontSize: 8.5,
+                        color: _muted,
+                        fontStyle: pw.FontStyle.italic)),
+              ),
             pw.Spacer(),
             _footer(l, fmt, profile, invoice, client),
             if (invoice.notes.isNotEmpty) ...[
@@ -225,6 +236,9 @@ abstract final class InvoicePdf {
               _totalRow(l.commonNet, money(inv.subtotalMinor)),
               if (inv.taxMinor != 0)
                 _totalRow(l.commonTax, money(inv.taxMinor)),
+              if (inv.allowanceMinor != 0)
+                _totalRow(l.invoiceAllowance(_rateLabel(inv)),
+                    money(inv.allowanceMinor)),
               pw.Divider(color: _line, height: 10),
               _totalRow(l.commonTotal, money(inv.totalMinor), bold: true),
             ],
@@ -324,6 +338,12 @@ abstract final class InvoicePdf {
         pw.Container(height: 0.8, color: _muted),
       ],
     );
+  }
+
+  /// The stored rate as it should print: "25", not "25.0".
+  static String _rateLabel(Invoice inv) {
+    final r = inv.allowanceRatePercent;
+    return r == r.roundToDouble() ? r.toStringAsFixed(0) : r.toString();
   }
 
   static pw.Widget _metaRow(String label, String value) {

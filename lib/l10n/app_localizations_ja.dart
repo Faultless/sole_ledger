@@ -290,6 +290,44 @@ class L10nJa extends L10n {
   String get invoiceThankYou => 'お取引ありがとうございます。';
 
   @override
+  String invoiceAllowance(String rate) {
+    return '業務委託税負担分（$rate%）';
+  }
+
+  @override
+  String get invoiceAllowanceNote =>
+      '業務委託税負担分は、受託者自身の納税負担を補填する契約上の上乗せ額です。公的な税ではなく、税務当局へ納付されるものではありません。';
+
+  @override
+  String get invoiceAllowanceEnabled => '業務委託税負担分を加算する';
+
+  @override
+  String get invoiceAllowanceRate => '率（%）';
+
+  @override
+  String get invoiceAllowanceMode => '計算方法';
+
+  @override
+  String get allowanceModeSurcharge => '上乗せ — 率 × 純額';
+
+  @override
+  String get allowanceModeGrossUp => 'グロスアップ — 純額を維持';
+
+  @override
+  String get allowanceModeSurchargeHint =>
+      '純額に率を上乗せします。上乗せ分にも課税されるため、手元に残るのは純額を下回ります。';
+
+  @override
+  String get allowanceModeGrossUpHint => '率を積み立てても純額がそのまま残るように合計を引き上げます。';
+
+  @override
+  String get settingsAllowanceTitle => '業務委託税負担分';
+
+  @override
+  String get settingsAllowanceSubtitle =>
+      '新規の請求書に既定で適用されます。既存の請求書は保存時の内容を保ちます。';
+
+  @override
   String get invoiceSignature => '署名';
 
   @override

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
+import '../../data/db/database.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
 import '../../domain/tax/depreciation.dart';
@@ -118,8 +119,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         final revenue = <Currency, int>{};
         for (final row in rows) {
           final currency = Currency.fromCode(row.invoice.currency);
-          revenue.update(currency, (v) => v + row.invoice.subtotalMinor,
-              ifAbsent: () => row.invoice.subtotalMinor);
+          revenue.update(currency, (v) => v + row.invoice.revenueMinor,
+              ifAbsent: () => row.invoice.revenueMinor);
         }
         final expenses = <Currency, int>{};
         for (final e in await repo.expensesBetween(from, to)) {

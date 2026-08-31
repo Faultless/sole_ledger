@@ -48,6 +48,15 @@ class BusinessProfiles extends Table {
       real().withDefault(const Constant(160))();
   /// App theme preference: 'system' | 'light' | 'dark'.
   TextColumn get themeMode => text().withDefault(const Constant('system'))();
+  /// Defaults for the contractor tax allowance applied to new invoices — the
+  /// uplift covering your own tax burden. Not VAT: see ContractorAllowance.
+  BoolColumn get defaultAllowanceEnabled =>
+      boolean().withDefault(const Constant(true))();
+  RealColumn get defaultAllowanceRatePercent =>
+      real().withDefault(const Constant(25))();
+  /// 'surcharge' (rate x net) or 'grossUp' (net / (1 - rate)).
+  TextColumn get defaultAllowanceMode =>
+      text().withDefault(const Constant('surcharge'))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -153,12 +162,34 @@ class Invoices extends Table {
   TextColumn get notes => text().withDefault(const Constant(''))();
   IntColumn get subtotalMinor => integer().withDefault(const Constant(0))();
   IntColumn get taxMinor => integer().withDefault(const Constant(0))();
+  /// The contractor tax allowance charged, as settled when the invoice was
+  /// saved. Stored rather than recomputed so an issued invoice stays the
+  /// document the client received, even if the default rate later changes.
+  ///
+  /// Defaults to off with a zero amount, which is what every invoice written
+  /// before this feature carries — their totals are untouched.
+  BoolColumn get allowanceEnabled =>
+      boolean().withDefault(const Constant(false))();
+  RealColumn get allowanceRatePercent =>
+      real().withDefault(const Constant(0))();
+  TextColumn get allowanceMode =>
+      text().withDefault(const Constant('surcharge'))();
+  IntColumn get allowanceMinor => integer().withDefault(const Constant(0))();
   IntColumn get totalMinor => integer().withDefault(const Constant(0))();
   DateTimeColumn get paidDate => dateTime().nullable()();
   DateTimeColumn get createdAt => dateTime()();
 
   @override
   Set<Column> get primaryKey => {id};
+}
+
+/// Revenue recognised from an invoice: the fee lines plus the contractor tax
+/// allowance. The allowance is part of the agreed fee and is taxed as income
+/// like the rest of it — leaving it out would understate revenue and, with it,
+/// the tax you set aside. VAT is excluded: it is collected for the state and
+/// was never yours.
+extension InvoiceRevenue on Invoice {
+  int get revenueMinor => subtotalMinor + allowanceMinor;
 }
 
 class InvoiceLines extends Table {
@@ -230,7 +261,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -259,6 +290,18 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 9) {
             await m.addColumn(invoices, invoices.dueDateEnabled);
+          }
+          if (from < 10) {
+            await m.addColumn(invoices, invoices.allowanceEnabled);
+            await m.addColumn(invoices, invoices.allowanceRatePercent);
+            await m.addColumn(invoices, invoices.allowanceMode);
+            await m.addColumn(invoices, invoices.allowanceMinor);
+            await m.addColumn(
+                businessProfiles, businessProfiles.defaultAllowanceEnabled);
+            await m.addColumn(businessProfiles,
+                businessProfiles.defaultAllowanceRatePercent);
+            await m.addColumn(
+                businessProfiles, businessProfiles.defaultAllowanceMode);
           }
         },
         beforeOpen: (details) async {
@@ -307,6 +350,41 @@ class AppDatabase extends _$AppDatabase {
             table: 'invoices',
             column: 'due_date_enabled',
             definition: 'BOOLEAN NOT NULL DEFAULT 1',
+          );
+          await _ensureColumn(
+            table: 'invoices',
+            column: 'allowance_enabled',
+            definition: 'BOOLEAN NOT NULL DEFAULT 0',
+          );
+          await _ensureColumn(
+            table: 'invoices',
+            column: 'allowance_rate_percent',
+            definition: 'REAL NOT NULL DEFAULT 0',
+          );
+          await _ensureColumn(
+            table: 'invoices',
+            column: 'allowance_mode',
+            definition: "TEXT NOT NULL DEFAULT 'surcharge'",
+          );
+          await _ensureColumn(
+            table: 'invoices',
+            column: 'allowance_minor',
+            definition: 'INTEGER NOT NULL DEFAULT 0',
+          );
+          await _ensureColumn(
+            table: 'business_profiles',
+            column: 'default_allowance_enabled',
+            definition: 'BOOLEAN NOT NULL DEFAULT 1',
+          );
+          await _ensureColumn(
+            table: 'business_profiles',
+            column: 'default_allowance_rate_percent',
+            definition: 'REAL NOT NULL DEFAULT 25',
+          );
+          await _ensureColumn(
+            table: 'business_profiles',
+            column: 'default_allowance_mode',
+            definition: "TEXT NOT NULL DEFAULT 'surcharge'",
           );
         },
       );

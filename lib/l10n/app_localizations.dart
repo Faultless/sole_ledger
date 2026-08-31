@@ -645,6 +645,72 @@ abstract class L10n {
   /// **'Thank you for your business.'**
   String get invoiceThankYou;
 
+  /// No description provided for @invoiceAllowance.
+  ///
+  /// In en, this message translates to:
+  /// **'Contractor tax allowance ({rate}%)'**
+  String invoiceAllowance(String rate);
+
+  /// No description provided for @invoiceAllowanceNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The contractor tax allowance is a contractual uplift toward the contractor\'s own tax liability. It is not a government tax and no part of it is remitted to a tax authority.'**
+  String get invoiceAllowanceNote;
+
+  /// No description provided for @invoiceAllowanceEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Add contractor tax allowance'**
+  String get invoiceAllowanceEnabled;
+
+  /// No description provided for @invoiceAllowanceRate.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate (%)'**
+  String get invoiceAllowanceRate;
+
+  /// No description provided for @invoiceAllowanceMode.
+  ///
+  /// In en, this message translates to:
+  /// **'How it\'s applied'**
+  String get invoiceAllowanceMode;
+
+  /// No description provided for @allowanceModeSurcharge.
+  ///
+  /// In en, this message translates to:
+  /// **'Surcharge — rate × net'**
+  String get allowanceModeSurcharge;
+
+  /// No description provided for @allowanceModeGrossUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Gross-up — net survives the rate'**
+  String get allowanceModeGrossUp;
+
+  /// No description provided for @allowanceModeSurchargeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds the rate on top of the net. You keep less than the net once the allowance is itself taxed.'**
+  String get allowanceModeSurchargeHint;
+
+  /// No description provided for @allowanceModeGrossUpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Raises the total so that setting aside the rate leaves the net intact.'**
+  String get allowanceModeGrossUpHint;
+
+  /// No description provided for @settingsAllowanceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contractor tax allowance'**
+  String get settingsAllowanceTitle;
+
+  /// No description provided for @settingsAllowanceSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Applied to new invoices by default. Existing invoices keep whatever they were saved with.'**
+  String get settingsAllowanceSubtitle;
+
   /// No description provided for @invoiceSignature.
   ///
   /// In en, this message translates to:

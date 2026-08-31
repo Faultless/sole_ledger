@@ -107,6 +107,20 @@
     "placeholders": { "date": { "type": "String" } }
   },
   "invoiceThankYou": "Thank you for your business.",
+  "invoiceAllowance": "Contractor tax allowance ({rate}%)",
+  "@invoiceAllowance": {
+    "placeholders": { "rate": { "type": "String" } }
+  },
+  "invoiceAllowanceNote": "The contractor tax allowance is a contractual uplift toward the contractor's own tax liability. It is not a government tax and no part of it is remitted to a tax authority.",
+  "invoiceAllowanceEnabled": "Add contractor tax allowance",
+  "invoiceAllowanceRate": "Rate (%)",
+  "invoiceAllowanceMode": "How it's applied",
+  "allowanceModeSurcharge": "Surcharge \u2014 rate \u00d7 net",
+  "allowanceModeGrossUp": "Gross-up \u2014 net survives the rate",
+  "allowanceModeSurchargeHint": "Adds the rate on top of the net. You keep less than the net once the allowance is itself taxed.",
+  "allowanceModeGrossUpHint": "Raises the total so that setting aside the rate leaves the net intact.",
+  "settingsAllowanceTitle": "Contractor tax allowance",
+  "settingsAllowanceSubtitle": "Applied to new invoices by default. Existing invoices keep whatever they were saved with.",
   "invoiceSignature": "Signature",
   "invoiceSignatureClient": "Signature (client)",
   "invoiceKvk": "KvK",

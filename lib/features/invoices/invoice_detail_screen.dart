@@ -295,6 +295,9 @@ class _InvoiceBody extends StatelessWidget {
                 if (invoice.taxMinor != 0)
                   _totalRow(l10n.commonTax, Money(invoice.taxMinor, currency),
                       fmt, text),
+                if (invoice.allowanceMinor != 0)
+                  _totalRow(l10n.invoiceAllowance(_rateLabel(invoice)),
+                      Money(invoice.allowanceMinor, currency), fmt, text),
                 const Divider(),
                 _totalRow(l10n.commonTotal, Money(invoice.totalMinor, currency),
                     fmt, text,
@@ -411,6 +414,12 @@ class _InvoiceBody extends StatelessWidget {
             Text('${l10n.invoiceVatId}: ${p.vatId}', style: text.bodySmall),
         ],
       );
+
+  /// The stored rate as it should read: "25", not "25.0".
+  String _rateLabel(Invoice inv) {
+    final r = inv.allowanceRatePercent;
+    return r == r.roundToDouble() ? r.toStringAsFixed(0) : r.toString();
+  }
 
   Widget _meta(String label, String value, TextTheme text) => Padding(
         padding: const EdgeInsets.only(bottom: 2),

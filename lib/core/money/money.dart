@@ -56,6 +56,19 @@ class Money implements Comparable<Money> {
     return Money((minorUnits * r / (1 + r)).round(), currency);
   }
 
+  /// Treats this amount as a net that must survive a deduction at [rate] and
+  /// returns the uplift needed for it to do so: net × r/(1−r). Grossing up by
+  /// r% is not the same as adding r% — see [AllowanceMode].
+  ///
+  /// [rate] is a fraction below 1; at or above 1 no finite uplift preserves the
+  /// net, so callers clamp before calling.
+  Money grossUpPortionAt(double rate) {
+    if (rate <= 0) return Money.zero(currency);
+    assert(rate < 1, 'Cannot gross up at a rate of 100% or more (got $rate).');
+    if (rate >= 1) return Money.zero(currency);
+    return Money((minorUnits * rate / (1 - rate)).round(), currency);
+  }
+
   /// Applies a business-use percentage (家事按分), e.g. 30 → 30%.
   Money proratedBy(int percent) =>
       Money((minorUnits * percent / 100).round(), currency);
