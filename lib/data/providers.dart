@@ -89,8 +89,8 @@ final invoiceLinesProvider = StreamProvider.family<List<InvoiceLine>, String>(
   (ref, id) => ref.watch(repositoryProvider).watchInvoiceLines(id),
 );
 
-final clientProvider = FutureProvider.family<Client?, String>(
-  (ref, id) => ref.watch(repositoryProvider).findClient(id),
+final clientProvider = StreamProvider.family<Client?, String>(
+  (ref, id) => ref.watch(repositoryProvider).watchClient(id),
 );
 
 /// Time entries for the current month (used by the dashboard KPI).

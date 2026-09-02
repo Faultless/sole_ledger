@@ -60,6 +60,13 @@ class AppRepository {
   Future<Client?> findClient(String id) =>
       (db.select(db.clients)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  /// Watches a single client so screens showing its details re-render when it
+  /// is edited. A one-shot read leaves an edited name stale everywhere it was
+  /// already on screen.
+  Stream<Client?> watchClient(String id) =>
+      (db.select(db.clients)..where((t) => t.id.equals(id)))
+          .watchSingleOrNull();
+
   Future<void> upsertClient(ClientsCompanion companion) =>
       db.into(db.clients).insertOnConflictUpdate(companion);
 
