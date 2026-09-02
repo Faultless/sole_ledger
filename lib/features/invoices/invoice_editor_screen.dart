@@ -87,6 +87,8 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
   /// the business profile's defaults; a saved invoice keeps what it was saved
   /// with, so reopening an old one never silently reprices it.
   ContractorAllowance _allowance = ContractorAllowance.none;
+  /// Whether the saved signature is stamped on this invoice.
+  bool _signed = false;
   late final _allowanceRateCtrl = TextEditingController();
   final _poCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
@@ -129,6 +131,9 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
         mode: AllowanceMode.byName(profile?.defaultAllowanceMode ?? 'surcharge'),
       );
       _allowanceRateCtrl.text = _trimRate(_allowance.ratePercent);
+      // Signing is the expected default once a signature exists — that is the
+      // point of storing one. Without one there is nothing to stamp.
+      _signed = profile?.signatureImage != null;
     }
   }
 
@@ -159,6 +164,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
         mode: AllowanceMode.byName(invoice.allowanceMode),
       );
       _allowanceRateCtrl.text = _trimRate(invoice.allowanceRatePercent);
+      _signed = invoice.signed;
       if (client != null) _adoptTerms(client);
       // A saved invoice keeps the date it was saved with; re-picking a client
       // or redating it must not silently move an agreed deadline.
@@ -337,6 +343,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
           allowanceRatePercent: Value(_allowance.ratePercent),
           allowanceMode: Value(_allowance.mode.name),
           allowanceMinor: Value(totals.allowanceAmount.minorUnits),
+          signed: Value(_signed),
           totalMinor: Value(totals.gross.minorUnits),
         ),
         lines: lineCompanions,
@@ -364,6 +371,7 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
           allowanceRatePercent: Value(_allowance.ratePercent),
           allowanceMode: Value(_allowance.mode.name),
           allowanceMinor: Value(totals.allowanceAmount.minorUnits),
+          signed: Value(_signed),
           totalMinor: Value(totals.gross.minorUnits),
         ),
         lines: lineCompanions,
@@ -509,6 +517,8 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
               onChanged: (a) => setState(() => _allowance = a),
             ),
             const SizedBox(height: 12),
+            _signatureTile(l10n),
+            const SizedBox(height: 12),
             _TotalsCard(totals: totals, fmt: fmt, l10n: l10n),
             const SizedBox(height: 12),
             TextField(
@@ -518,6 +528,35 @@ class _InvoiceEditorScreenState extends ConsumerState<InvoiceEditorScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// One-switch signing: the signature itself is drawn once in Settings, so
+  /// all an invoice decides is whether to carry it.
+  Widget _signatureTile(L10n l10n) {
+    final signature = ref.watch(businessProfileProvider).value?.signatureImage;
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: SwitchListTile(
+        title: Text(l10n.invoiceSigned),
+        subtitle: signature == null
+            ? Text(l10n.invoiceSignedNoSignature)
+            : null,
+        secondary: signature == null
+            ? const Icon(Icons.draw_outlined)
+            : SizedBox(
+                width: 64,
+                height: 32,
+                child: ColorFiltered(
+                  colorFilter:
+                      ColorFilter.mode(scheme.onSurface, BlendMode.srcIn),
+                  child: Image.memory(signature, fit: BoxFit.contain),
+                ),
+              ),
+        value: _signed && signature != null,
+        onChanged:
+            signature == null ? null : (v) => setState(() => _signed = v),
       ),
     );
   }

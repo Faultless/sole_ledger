@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/widgets/common.dart';
 import '../../core/widgets/labels.dart';
 import '../../data/db/database.dart';
+import '../../core/format/document_name.dart';
 import '../../data/providers.dart';
 import '../../domain/enums.dart';
 import '../../domain/tax/vat_treatment.dart';
@@ -111,14 +112,30 @@ class _ClientEditorState extends ConsumerState<_ClientEditor> {
       text: (widget.client?.paymentTermDays ?? 30).toString());
   late final _dueDay = TextEditingController(
       text: widget.client?.paymentDueDayOfMonth?.toString() ?? '');
+  late final _shortName =
+      TextEditingController(text: widget.client?.shortName ?? '');
 
   @override
   void dispose() {
     for (final c in [_name, _contact, _vatId, _addr, _city, _country, _email,
-        _rate, _terms, _dueDay]) {
+        _rate, _terms, _dueDay, _shortName]) {
       c.dispose();
     }
     super.dispose();
+  }
+
+  /// Shows what exported filenames will call this client, so the effect of the
+  /// short name is visible before saving.
+  String _shortNameHint() {
+    final source =
+        _shortName.text.trim().isEmpty ? _name.text.trim() : _shortName.text.trim();
+    if (source.isEmpty) return 'Used in exported filenames.';
+    return 'Filenames will read: ${DocumentName.invoice(
+      number: 'INV-2026-0001',
+      issuer: '…',
+      client: source,
+      issueDate: DateTime(2026, 8),
+    ).split('_')[2]}';
   }
 
   /// Day-of-month terms only make sense for days every month has.
@@ -147,6 +164,8 @@ class _ClientEditorState extends ConsumerState<_ClientEditor> {
       defaultHourlyRate: Value(double.tryParse(_rate.text.trim())),
       paymentTermDays: Value(int.tryParse(_terms.text.trim()) ?? 30),
       paymentDueDayOfMonth: Value(_parsedDueDay()),
+      shortName: Value(
+          _shortName.text.trim().isEmpty ? null : _shortName.text.trim()),
     ));
     if (mounted) Navigator.of(context).pop();
   }
@@ -168,6 +187,15 @@ class _ClientEditorState extends ConsumerState<_ClientEditor> {
             TextField(
                 controller: _name,
                 decoration: const InputDecoration(labelText: 'Client name')),
+            const SizedBox(height: 12),
+            TextField(
+                controller: _shortName,
+                decoration: InputDecoration(
+                  labelText: 'Short name (optional)',
+                  helperText: _shortNameHint(),
+                  helperMaxLines: 2,
+                ),
+                onChanged: (_) => setState(() {})),
             const SizedBox(height: 12),
             TextField(
                 controller: _contact,

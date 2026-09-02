@@ -117,8 +117,8 @@ abstract final class ReportPdf {
 
   // ---------------------------------------------------------------- Timesheet
 
-  /// [periodSlug] stamps the filename (e.g. `2026-08`) so exports of different
-  /// periods don't overwrite each other in the downloads folder.
+  /// [filename] is the base name (no extension), built by [DocumentName] so
+  /// exports of different periods don't overwrite each other.
   static Future<void> shareTimesheet({
     required BusinessProfile profile,
     required List<Client> clients,
@@ -126,7 +126,7 @@ abstract final class ReportPdf {
     required DateTime from,
     required DateTime toInclusive,
     required String lang,
-    required String periodSlug,
+    required String filename,
   }) async {
     final l = await L10n.delegate.load(Locale(lang));
     final fmt = Formatters(lang);
@@ -197,7 +197,7 @@ abstract final class ReportPdf {
       ],
     ));
     await Printing.sharePdf(
-        bytes: await doc.save(), filename: 'timesheet_$periodSlug.pdf');
+        bytes: await doc.save(), filename: '$filename.pdf');
   }
 
   static Future<void> saveTimesheetMarkdown({
@@ -207,7 +207,7 @@ abstract final class ReportPdf {
     required DateTime from,
     required DateTime toInclusive,
     required String lang,
-    required String periodSlug,
+    required String filename,
   }) async {
     final fmt = Formatters(lang);
     final names = {for (final c in clients) c.id: c.name};
@@ -256,7 +256,7 @@ abstract final class ReportPdf {
         ..writeln();
     });
     buffer.writeln('**Total: ${fmt.hoursFromMinutes(grand)}**');
-    await _saveMarkdown('timesheet_$periodSlug', buffer.toString());
+    await _saveMarkdown(filename, buffer.toString());
   }
 
   // -------------------------------------------------------------- Quarterly VAT
@@ -267,6 +267,7 @@ abstract final class ReportPdf {
     required int year,
     required int quarter,
     required String lang,
+    required String filename,
   }) async {
     final l = await L10n.delegate.load(Locale(lang));
     final fmt = Formatters(lang);
@@ -327,7 +328,7 @@ abstract final class ReportPdf {
       ],
     ));
     await Printing.sharePdf(
-        bytes: await doc.save(), filename: 'vat_${year}_Q$quarter.pdf');
+        bytes: await doc.save(), filename: '$filename.pdf');
   }
 
   // ------------------------------------------------------------- Annual income
@@ -338,6 +339,7 @@ abstract final class ReportPdf {
     required int year,
     required String lang,
     required double eurToJpy,
+    required String filename,
   }) async {
     final l = await L10n.delegate.load(Locale(lang));
     final fmt = Formatters(lang);
@@ -432,7 +434,7 @@ abstract final class ReportPdf {
       ],
     ));
     await Printing.sharePdf(
-        bytes: await doc.save(), filename: 'income_$year.pdf');
+        bytes: await doc.save(), filename: '$filename.pdf');
   }
 
   static pw.Widget _estRow(String label, String value, {bool bold = false}) {

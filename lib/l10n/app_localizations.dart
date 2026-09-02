@@ -699,6 +699,54 @@ abstract class L10n {
   /// **'Raises the total so that setting aside the rate leaves the net intact.'**
   String get allowanceModeGrossUpHint;
 
+  /// No description provided for @settingsSignatureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Signature'**
+  String get settingsSignatureTitle;
+
+  /// No description provided for @settingsSignatureSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw it once here, then stamp it on any invoice with a switch. New invoices are signed automatically once a signature exists.'**
+  String get settingsSignatureSubtitle;
+
+  /// No description provided for @settingsSignatureEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No signature yet'**
+  String get settingsSignatureEmpty;
+
+  /// No description provided for @settingsSignatureDraw.
+  ///
+  /// In en, this message translates to:
+  /// **'Draw'**
+  String get settingsSignatureDraw;
+
+  /// No description provided for @settingsSignatureImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import image'**
+  String get settingsSignatureImport;
+
+  /// No description provided for @settingsSignatureImportFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read a signature from that image.'**
+  String get settingsSignatureImportFailed;
+
+  /// No description provided for @invoiceSigned.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign this invoice'**
+  String get invoiceSigned;
+
+  /// No description provided for @invoiceSignedNoSignature.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a signature in Settings first.'**
+  String get invoiceSignedNoSignature;
+
   /// No description provided for @settingsAllowanceTitle.
   ///
   /// In en, this message translates to:

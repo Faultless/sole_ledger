@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/format/document_name.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
 import '../../data/db/database.dart';
@@ -67,11 +68,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         ReportPeriodKind.month => ReportPeriod.ofMonth(_year, _month),
       };
 
+  /// The issuing business as it should appear in a filename.
+  static String _issuerOf(BusinessProfile p) =>
+      p.tradeName.isNotEmpty ? p.tradeName : p.legalName;
+
   Future<void> _timesheet({required bool markdown}) => _run(() async {
         final repo = ref.read(repositoryProvider);
         final profile = await repo.ensureBusinessProfile();
         final clients = await repo.allClientsOnce();
         final period = _timesheetPeriod;
+        final filename = DocumentName.timesheet(
+            issuer: _issuerOf(profile), period: period);
         final entries =
             await repo.timeEntriesBetween(period.start, period.endExclusive);
         if (markdown) {
@@ -82,7 +89,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             from: period.start,
             toInclusive: period.endInclusive,
             lang: _lang,
-            periodSlug: period.slug,
+            filename: filename,
           );
         } else {
           await ReportPdf.shareTimesheet(
@@ -92,7 +99,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             from: period.start,
             toInclusive: period.endInclusive,
             lang: _lang,
-            periodSlug: period.slug,
+            filename: filename,
           );
         }
       });
@@ -119,6 +126,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           year: _year,
           quarter: _quarter.number,
           lang: _lang,
+          filename: DocumentName.vatReturn(
+              issuer: _issuerOf(profile), year: _year, quarter: _quarter),
         );
       });
 
@@ -165,6 +174,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           year: _year,
           lang: _lang,
           eurToJpy: double.tryParse(_fxCtrl.text.replaceAll(',', '.')) ?? 160,
+          filename:
+              DocumentName.annualIncome(issuer: _issuerOf(profile), year: _year),
         );
       });
 

@@ -328,6 +328,33 @@ class L10nNl extends L10n {
       'Verhoogt het totaal zo dat het netto intact blijft nadat je het percentage reserveert.';
 
   @override
+  String get settingsSignatureTitle => 'Handtekening';
+
+  @override
+  String get settingsSignatureSubtitle =>
+      'Zet hem hier één keer, en plaats hem daarna met een schakelaar op elke factuur. Nieuwe facturen worden automatisch ondertekend zodra er een handtekening is.';
+
+  @override
+  String get settingsSignatureEmpty => 'Nog geen handtekening';
+
+  @override
+  String get settingsSignatureDraw => 'Tekenen';
+
+  @override
+  String get settingsSignatureImport => 'Afbeelding importeren';
+
+  @override
+  String get settingsSignatureImportFailed =>
+      'Kon geen handtekening uit die afbeelding lezen.';
+
+  @override
+  String get invoiceSigned => 'Deze factuur ondertekenen';
+
+  @override
+  String get invoiceSignedNoSignature =>
+      'Voeg eerst een handtekening toe in Instellingen.';
+
+  @override
   String get settingsAllowanceTitle => 'Belastingtoeslag opdrachtnemer';
 
   @override

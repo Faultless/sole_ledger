@@ -17,6 +17,7 @@ void main() {
     required bool dueDateEnabled,
     required int lineCount,
     bool allowance = false,
+    bool signed = false,
   }) async {
     final db = AppDatabase(NativeDatabase.memory());
     final repo = AppRepository(db);
@@ -32,6 +33,16 @@ void main() {
           kvkNumber: const Value('12345678'),
           vatId: const Value('NL001234567B01'),
           bankName: const Value('Some Bank N.V.'),
+          // A 1x1 transparent PNG stands in for a drawn signature.
+          signatureImage: Value(Uint8List.fromList(const [
+            0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, //
+            0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F,
+            0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+            0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05, 0x00,
+            0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+            0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+          ])),
           iban: const Value('NL00SOME0123456789'),
           bic: const Value('SOMENL2A'),
         ));
@@ -56,6 +67,7 @@ void main() {
         issueDate: DateTime(2026, 8, 30),
         dueDate: DateTime(2026, 9, 29),
         dueDateEnabled: Value(dueDateEnabled),
+        signed: Value(signed),
         allowanceEnabled: Value(allowance),
         allowanceRatePercent: Value(allowance ? 25 : 0),
         allowanceMode: const Value('surcharge'),
@@ -98,4 +110,11 @@ void main() {
       () => render(dueDateEnabled: true, lineCount: 6, allowance: true));
   test('renders a busy invoice with the allowance',
       () => render(dueDateEnabled: true, lineCount: 14, allowance: true));
+  // A signature is stamped into the space the block already reserves, so a
+  // signed invoice must be no taller than an unsigned one.
+  test('renders signed',
+      () => render(dueDateEnabled: true, lineCount: 6, signed: true));
+  test('renders a busy signed invoice with everything on',
+      () => render(
+          dueDateEnabled: true, lineCount: 14, allowance: true, signed: true));
 }

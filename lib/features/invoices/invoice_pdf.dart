@@ -5,6 +5,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import '../../core/format/document_name.dart';
 import '../../core/format/formatters.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
@@ -35,7 +36,19 @@ abstract final class InvoicePdf {
       invoice: invoice,
       lines: lines,
     );
-    await Printing.sharePdf(bytes: bytes, filename: '${invoice.number}.pdf');
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: '${DocumentName.invoice(
+        number: invoice.number,
+        issuer: profile.tradeName.isNotEmpty
+            ? profile.tradeName
+            : profile.legalName,
+        client: client.shortName?.trim().isNotEmpty == true
+            ? client.shortName!
+            : client.name,
+        issueDate: invoice.issueDate,
+      )}.pdf',
+    );
   }
 
   static Future<Uint8List> build({
@@ -294,6 +307,7 @@ abstract final class InvoicePdf {
                     '${p.postalCode} ${p.city}'.trim(),
                     p.country,
                   ],
+                  signature: inv.signed ? p.signatureImage : null,
                 ),
               ),
               pw.SizedBox(width: 28),
@@ -318,10 +332,14 @@ abstract final class InvoicePdf {
   /// A signature block: who signs, their address, then the line they sign on.
   /// Naming the party above the rule keeps a countersigned copy unambiguous
   /// about which signature belongs to whom.
+  /// [signature] is stamped into the space above the rule when the invoice is
+  /// signed. It occupies the gap the empty block leaves for a wet signature, so
+  /// a signed and an unsigned invoice are the same height on the page.
   static pw.Widget _signatureBlock({
     required String role,
     required String name,
     required List<String> address,
+    Uint8List? signature,
   }) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -334,7 +352,15 @@ abstract final class InvoicePdf {
             style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
         for (final line in address)
           if (line.isNotEmpty) _small(line),
-        pw.SizedBox(height: 26),
+        if (signature == null)
+          pw.SizedBox(height: 26)
+        else
+          pw.Container(
+            height: 26,
+            alignment: pw.Alignment.bottomLeft,
+            child: pw.Image(pw.MemoryImage(signature),
+                height: 26, fit: pw.BoxFit.contain),
+          ),
         pw.Container(height: 0.8, color: _muted),
       ],
     );

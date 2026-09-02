@@ -328,6 +328,32 @@ class L10nEn extends L10n {
       'Raises the total so that setting aside the rate leaves the net intact.';
 
   @override
+  String get settingsSignatureTitle => 'Signature';
+
+  @override
+  String get settingsSignatureSubtitle =>
+      'Draw it once here, then stamp it on any invoice with a switch. New invoices are signed automatically once a signature exists.';
+
+  @override
+  String get settingsSignatureEmpty => 'No signature yet';
+
+  @override
+  String get settingsSignatureDraw => 'Draw';
+
+  @override
+  String get settingsSignatureImport => 'Import image';
+
+  @override
+  String get settingsSignatureImportFailed =>
+      'Couldn\'t read a signature from that image.';
+
+  @override
+  String get invoiceSigned => 'Sign this invoice';
+
+  @override
+  String get invoiceSignedNoSignature => 'Add a signature in Settings first.';
+
+  @override
   String get settingsAllowanceTitle => 'Contractor tax allowance';
 
   @override

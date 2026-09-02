@@ -58,6 +58,12 @@ void main() {
       timeEntryIds: const [],
     );
 
+    if (version < 11) {
+      await db.customStatement('ALTER TABLE invoices DROP COLUMN signed');
+      await db.customStatement(
+          'ALTER TABLE business_profiles DROP COLUMN signature_image');
+      await db.customStatement('ALTER TABLE clients DROP COLUMN short_name');
+    }
     if (version < 10) {
       for (final c in [
         'allowance_enabled',
@@ -92,8 +98,8 @@ void main() {
     await db.close();
   }
 
-  for (final from in [7, 8, 9]) {
-    test('a v$from ledger opens on v10 with its invoices intact', () async {
+  for (final from in [7, 8, 9, 10]) {
+    test('a v$from ledger opens on v11 with its invoices intact', () async {
       await seedAtVersion(from);
 
       final db = AppDatabase(NativeDatabase(file));
@@ -115,6 +121,9 @@ void main() {
       expect(invoice.allowanceMinor, 0);
       expect(invoice.totalMinor, 150000);
       expect(invoice.revenueMinor, invoice.subtotalMinor);
+      // An invoice issued before signing existed stays unsigned; nothing is
+      // stamped onto a document already in a client's hands.
+      expect(invoice.signed, isFalse);
 
       final lines = await repo.invoiceLines('invoice-1');
       expect(lines, hasLength(1));
@@ -131,12 +140,24 @@ void main() {
     });
   }
 
-  test('a v10 ledger reopens unchanged', () async {
-    await seedAtVersion(10);
+  test('a v11 ledger reopens unchanged', () async {
+    await seedAtVersion(11);
     final db = AppDatabase(NativeDatabase(file));
     final invoice = await AppRepository(db).findInvoice('invoice-1');
     expect(invoice!.dueDateEnabled, isTrue);
     expect(invoice.allowanceMinor, 0);
+    expect(invoice.signed, isFalse);
+    await db.close();
+  });
+
+  test('an upgraded ledger has no signature and no short names', () async {
+    await seedAtVersion(7);
+    final db = AppDatabase(NativeDatabase(file));
+    final repo = AppRepository(db);
+    expect((await repo.ensureBusinessProfile()).signatureImage, isNull);
+    // No short name means filenames fall back to the client's full name,
+    // sanitised — nothing to configure before exporting.
+    expect((await repo.findClient('client-1'))!.shortName, isNull);
     await db.close();
   });
 

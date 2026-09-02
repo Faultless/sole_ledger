@@ -321,6 +321,31 @@ class L10nJa extends L10n {
   String get allowanceModeGrossUpHint => '率を積み立てても純額がそのまま残るように合計を引き上げます。';
 
   @override
+  String get settingsSignatureTitle => '署名';
+
+  @override
+  String get settingsSignatureSubtitle =>
+      'ここで一度署名を作成すれば、各請求書にスイッチで挿入できます。署名があれば新規の請求書には自動で付きます。';
+
+  @override
+  String get settingsSignatureEmpty => '署名はまだありません';
+
+  @override
+  String get settingsSignatureDraw => '手書き';
+
+  @override
+  String get settingsSignatureImport => '画像を読み込む';
+
+  @override
+  String get settingsSignatureImportFailed => 'その画像から署名を読み取れませんでした。';
+
+  @override
+  String get invoiceSigned => 'この請求書に署名する';
+
+  @override
+  String get invoiceSignedNoSignature => '先に設定で署名を登録してください。';
+
+  @override
   String get settingsAllowanceTitle => '業務委託税負担分';
 
   @override

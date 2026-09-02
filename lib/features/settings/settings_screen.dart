@@ -13,6 +13,7 @@ import '../../domain/enums.dart';
 import '../../domain/tax/contractor_allowance.dart';
 import '../../l10n/app_localizations.dart';
 import '../shell/app_shell.dart';
+import 'signature_pad.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -394,6 +395,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            SectionHeader(title: l10n.settingsSignatureTitle),
+            _signatureCard(context, l10n),
+            const SizedBox(height: 16),
             SectionHeader(title: l10n.settingsAllowanceTitle),
             _allowanceCard(context, l10n),
             const SizedBox(height: 16),
@@ -542,6 +546,96 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  /// Saves [png] as the signature, or clears it when null.
+  Future<void> _setSignature(Uint8List? png) async {
+    await ref.read(repositoryProvider).saveBusinessProfile(
+          BusinessProfilesCompanion(signatureImage: Value(png)),
+        );
+  }
+
+  Future<void> _drawSignature() async {
+    final png = await SignaturePadDialog.show(context);
+    if (png != null) await _setSignature(png);
+  }
+
+  Future<void> _importSignature() async {
+    final png = await importSignatureImage();
+    if (png == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(L10n.of(context).settingsSignatureImportFailed)),
+        );
+      }
+      return;
+    }
+    await _setSignature(png);
+  }
+
+  /// Your signature, drawn once and reused. Stored on the profile rather than
+  /// per invoice, so replacing it updates what future invoices are stamped with
+  /// — the same way your address and IBAN already flow into the document.
+  Widget _signatureCard(BuildContext context, L10n l10n) {
+    final signature = ref.watch(businessProfileProvider).value?.signatureImage;
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.settingsSignatureSubtitle,
+                style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 12),
+            Container(
+              height: 96,
+              width: double.infinity,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: scheme.surfaceContainerHighest,
+                border: Border.all(color: scheme.outlineVariant),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.all(8),
+              child: signature == null
+                  ? Text(l10n.settingsSignatureEmpty,
+                      style: Theme.of(context).textTheme.bodySmall)
+                  // The stored PNG is black ink for white paper, so it is
+                  // tinted to the theme's foreground for the preview only.
+                  : ColorFiltered(
+                      colorFilter:
+                          ColorFilter.mode(scheme.onSurface, BlendMode.srcIn),
+                      child: Image.memory(signature, fit: BoxFit.contain),
+                    ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  onPressed: _drawSignature,
+                  icon: const Icon(Icons.draw_outlined, size: 18),
+                  label: Text(l10n.settingsSignatureDraw),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _importSignature,
+                  icon: const Icon(Icons.image_outlined, size: 18),
+                  label: Text(l10n.settingsSignatureImport),
+                ),
+                if (signature != null)
+                  TextButton.icon(
+                    onPressed: () => _setSignature(null),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: Text(l10n.commonDelete),
+                  ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -340,6 +342,7 @@ class _InvoiceBody extends StatelessWidget {
           children: [
             Expanded(
               child: _signatureBlock(
+                signature: invoice.signed ? profile?.signatureImage : null,
                 role: l10n.invoiceSignature,
                 name: switch (profile) {
                   null => '',
@@ -386,6 +389,7 @@ class _InvoiceBody extends StatelessWidget {
     required String name,
     required List<String> address,
     required TextTheme text,
+    Uint8List? signature,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,7 +400,15 @@ class _InvoiceBody extends StatelessWidget {
             style: text.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
         for (final line in address)
           if (line.isNotEmpty) Text(line, style: text.bodySmall),
-        const SizedBox(height: 32),
+        SizedBox(
+          height: 32,
+          child: signature == null
+              ? null
+              : Align(
+                  alignment: Alignment.bottomLeft,
+                  child: Image.memory(signature, height: 30, fit: BoxFit.contain),
+                ),
+        ),
         Container(height: 1, color: Colors.grey),
       ],
     );

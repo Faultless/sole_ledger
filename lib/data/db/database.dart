@@ -40,6 +40,13 @@ class BusinessProfiles extends Table {
   IntColumn get nextInvoiceSeq => integer().withDefault(const Constant(1))();
   TextColumn get logoPath => text().nullable()();
   TextColumn get signaturePath => text().nullable()();
+  /// Your handwritten signature as a transparent PNG, drawn or imported once
+  /// in Settings and stamped onto invoices you choose to sign.
+  ///
+  /// Stored as bytes rather than reusing [signaturePath] (dead, never written)
+  /// because the ledger is a single file synced between machines — a path to a
+  /// local image would not survive the trip.
+  BlobColumn get signatureImage => blob().nullable()();
   RealColumn get defaultHourlyRate =>
       real().withDefault(const Constant(0))(); // major units of defaultCurrency
   /// EUR→JPY rate used to convert profit for the Japanese income-tax estimate
@@ -85,6 +92,10 @@ class Clients extends Table {
   /// issue date, and [paymentTermDays] is ignored. Suits clients billed on a
   /// calendar-month cycle who pay on a fixed day.
   IntColumn get paymentDueDayOfMonth => integer().nullable()();
+  /// Optional short form used in exported filenames, e.g. "DeliHome" for
+  /// "Deli Home Netherlands B.V.". Dropping a legal suffix is a rule the app
+  /// can apply; knowing which remaining words you'd drop is not, so it asks.
+  TextColumn get shortName => text().nullable()();
   TextColumn get notes => text().withDefault(const Constant(''))();
   BoolColumn get archived => boolean().withDefault(const Constant(false))();
 
@@ -168,6 +179,10 @@ class Invoices extends Table {
   ///
   /// Defaults to off with a zero amount, which is what every invoice written
   /// before this feature carries — their totals are untouched.
+  /// Whether your saved signature is stamped on this invoice. Off for every
+  /// invoice written before signing existed — they were issued unsigned and
+  /// stay that way until you say otherwise.
+  BoolColumn get signed => boolean().withDefault(const Constant(false))();
   BoolColumn get allowanceEnabled =>
       boolean().withDefault(const Constant(false))();
   RealColumn get allowanceRatePercent =>
@@ -261,7 +276,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -290,6 +305,11 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 9) {
             await m.addColumn(invoices, invoices.dueDateEnabled);
+          }
+          if (from < 11) {
+            await m.addColumn(businessProfiles, businessProfiles.signatureImage);
+            await m.addColumn(invoices, invoices.signed);
+            await m.addColumn(clients, clients.shortName);
           }
           if (from < 10) {
             await m.addColumn(invoices, invoices.allowanceEnabled);
@@ -355,6 +375,21 @@ class AppDatabase extends _$AppDatabase {
             table: 'invoices',
             column: 'allowance_enabled',
             definition: 'BOOLEAN NOT NULL DEFAULT 0',
+          );
+          await _ensureColumn(
+            table: 'invoices',
+            column: 'signed',
+            definition: 'BOOLEAN NOT NULL DEFAULT 0',
+          );
+          await _ensureColumn(
+            table: 'business_profiles',
+            column: 'signature_image',
+            definition: 'BLOB',
+          );
+          await _ensureColumn(
+            table: 'clients',
+            column: 'short_name',
+            definition: 'TEXT',
           );
           await _ensureColumn(
             table: 'invoices',

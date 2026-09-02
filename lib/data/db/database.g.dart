@@ -256,6 +256,18 @@ class $BusinessProfilesTable extends BusinessProfiles
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _signatureImageMeta = const VerificationMeta(
+    'signatureImage',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> signatureImage =
+      GeneratedColumn<Uint8List>(
+        'signature_image',
+        aliasedName,
+        true,
+        type: DriftSqlType.blob,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _defaultHourlyRateMeta = const VerificationMeta(
     'defaultHourlyRate',
   );
@@ -356,6 +368,7 @@ class $BusinessProfilesTable extends BusinessProfiles
     nextInvoiceSeq,
     logoPath,
     signaturePath,
+    signatureImage,
     defaultHourlyRate,
     eurToJpyRate,
     themeMode,
@@ -530,6 +543,15 @@ class $BusinessProfilesTable extends BusinessProfiles
         ),
       );
     }
+    if (data.containsKey('signature_image')) {
+      context.handle(
+        _signatureImageMeta,
+        signatureImage.isAcceptableOrUnknown(
+          data['signature_image']!,
+          _signatureImageMeta,
+        ),
+      );
+    }
     if (data.containsKey('default_hourly_rate')) {
       context.handle(
         _defaultHourlyRateMeta,
@@ -678,6 +700,10 @@ class $BusinessProfilesTable extends BusinessProfiles
         DriftSqlType.string,
         data['${effectivePrefix}signature_path'],
       ),
+      signatureImage: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}signature_image'],
+      ),
       defaultHourlyRate: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}default_hourly_rate'],
@@ -734,6 +760,14 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
   final int nextInvoiceSeq;
   final String? logoPath;
   final String? signaturePath;
+
+  /// Your handwritten signature as a transparent PNG, drawn or imported once
+  /// in Settings and stamped onto invoices you choose to sign.
+  ///
+  /// Stored as bytes rather than reusing [signaturePath] (dead, never written)
+  /// because the ledger is a single file synced between machines — a path to a
+  /// local image would not survive the trip.
+  final Uint8List? signatureImage;
   final double defaultHourlyRate;
 
   /// EUR→JPY rate used to convert profit for the Japanese income-tax estimate
@@ -773,6 +807,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     required this.nextInvoiceSeq,
     this.logoPath,
     this.signaturePath,
+    this.signatureImage,
     required this.defaultHourlyRate,
     required this.eurToJpyRate,
     required this.themeMode,
@@ -808,6 +843,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     }
     if (!nullToAbsent || signaturePath != null) {
       map['signature_path'] = Variable<String>(signaturePath);
+    }
+    if (!nullToAbsent || signatureImage != null) {
+      map['signature_image'] = Variable<Uint8List>(signatureImage);
     }
     map['default_hourly_rate'] = Variable<double>(defaultHourlyRate);
     map['eur_to_jpy_rate'] = Variable<double>(eurToJpyRate);
@@ -848,6 +886,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       signaturePath: signaturePath == null && nullToAbsent
           ? const Value.absent()
           : Value(signaturePath),
+      signatureImage: signatureImage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(signatureImage),
       defaultHourlyRate: Value(defaultHourlyRate),
       eurToJpyRate: Value(eurToJpyRate),
       themeMode: Value(themeMode),
@@ -887,6 +928,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       nextInvoiceSeq: serializer.fromJson<int>(json['nextInvoiceSeq']),
       logoPath: serializer.fromJson<String?>(json['logoPath']),
       signaturePath: serializer.fromJson<String?>(json['signaturePath']),
+      signatureImage: serializer.fromJson<Uint8List?>(json['signatureImage']),
       defaultHourlyRate: serializer.fromJson<double>(json['defaultHourlyRate']),
       eurToJpyRate: serializer.fromJson<double>(json['eurToJpyRate']),
       themeMode: serializer.fromJson<String>(json['themeMode']),
@@ -927,6 +969,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       'nextInvoiceSeq': serializer.toJson<int>(nextInvoiceSeq),
       'logoPath': serializer.toJson<String?>(logoPath),
       'signaturePath': serializer.toJson<String?>(signaturePath),
+      'signatureImage': serializer.toJson<Uint8List?>(signatureImage),
       'defaultHourlyRate': serializer.toJson<double>(defaultHourlyRate),
       'eurToJpyRate': serializer.toJson<double>(eurToJpyRate),
       'themeMode': serializer.toJson<String>(themeMode),
@@ -963,6 +1006,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     int? nextInvoiceSeq,
     Value<String?> logoPath = const Value.absent(),
     Value<String?> signaturePath = const Value.absent(),
+    Value<Uint8List?> signatureImage = const Value.absent(),
     double? defaultHourlyRate,
     double? eurToJpyRate,
     String? themeMode,
@@ -994,6 +1038,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     signaturePath: signaturePath.present
         ? signaturePath.value
         : this.signaturePath,
+    signatureImage: signatureImage.present
+        ? signatureImage.value
+        : this.signatureImage,
     defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
     eurToJpyRate: eurToJpyRate ?? this.eurToJpyRate,
     themeMode: themeMode ?? this.themeMode,
@@ -1045,6 +1092,9 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
       signaturePath: data.signaturePath.present
           ? data.signaturePath.value
           : this.signaturePath,
+      signatureImage: data.signatureImage.present
+          ? data.signatureImage.value
+          : this.signatureImage,
       defaultHourlyRate: data.defaultHourlyRate.present
           ? data.defaultHourlyRate.value
           : this.defaultHourlyRate,
@@ -1089,6 +1139,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           ..write('nextInvoiceSeq: $nextInvoiceSeq, ')
           ..write('logoPath: $logoPath, ')
           ..write('signaturePath: $signaturePath, ')
+          ..write('signatureImage: $signatureImage, ')
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
           ..write('eurToJpyRate: $eurToJpyRate, ')
           ..write('themeMode: $themeMode, ')
@@ -1123,6 +1174,7 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
     nextInvoiceSeq,
     logoPath,
     signaturePath,
+    $driftBlobEquality.hash(signatureImage),
     defaultHourlyRate,
     eurToJpyRate,
     themeMode,
@@ -1156,6 +1208,10 @@ class BusinessProfile extends DataClass implements Insertable<BusinessProfile> {
           other.nextInvoiceSeq == this.nextInvoiceSeq &&
           other.logoPath == this.logoPath &&
           other.signaturePath == this.signaturePath &&
+          $driftBlobEquality.equals(
+            other.signatureImage,
+            this.signatureImage,
+          ) &&
           other.defaultHourlyRate == this.defaultHourlyRate &&
           other.eurToJpyRate == this.eurToJpyRate &&
           other.themeMode == this.themeMode &&
@@ -1188,6 +1244,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
   final Value<int> nextInvoiceSeq;
   final Value<String?> logoPath;
   final Value<String?> signaturePath;
+  final Value<Uint8List?> signatureImage;
   final Value<double> defaultHourlyRate;
   final Value<double> eurToJpyRate;
   final Value<String> themeMode;
@@ -1218,6 +1275,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     this.nextInvoiceSeq = const Value.absent(),
     this.logoPath = const Value.absent(),
     this.signaturePath = const Value.absent(),
+    this.signatureImage = const Value.absent(),
     this.defaultHourlyRate = const Value.absent(),
     this.eurToJpyRate = const Value.absent(),
     this.themeMode = const Value.absent(),
@@ -1249,6 +1307,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     this.nextInvoiceSeq = const Value.absent(),
     this.logoPath = const Value.absent(),
     this.signaturePath = const Value.absent(),
+    this.signatureImage = const Value.absent(),
     this.defaultHourlyRate = const Value.absent(),
     this.eurToJpyRate = const Value.absent(),
     this.themeMode = const Value.absent(),
@@ -1280,6 +1339,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     Expression<int>? nextInvoiceSeq,
     Expression<String>? logoPath,
     Expression<String>? signaturePath,
+    Expression<Uint8List>? signatureImage,
     Expression<double>? defaultHourlyRate,
     Expression<double>? eurToJpyRate,
     Expression<String>? themeMode,
@@ -1312,6 +1372,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
       if (nextInvoiceSeq != null) 'next_invoice_seq': nextInvoiceSeq,
       if (logoPath != null) 'logo_path': logoPath,
       if (signaturePath != null) 'signature_path': signaturePath,
+      if (signatureImage != null) 'signature_image': signatureImage,
       if (defaultHourlyRate != null) 'default_hourly_rate': defaultHourlyRate,
       if (eurToJpyRate != null) 'eur_to_jpy_rate': eurToJpyRate,
       if (themeMode != null) 'theme_mode': themeMode,
@@ -1348,6 +1409,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     Value<int>? nextInvoiceSeq,
     Value<String?>? logoPath,
     Value<String?>? signaturePath,
+    Value<Uint8List?>? signatureImage,
     Value<double>? defaultHourlyRate,
     Value<double>? eurToJpyRate,
     Value<String>? themeMode,
@@ -1379,6 +1441,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
       nextInvoiceSeq: nextInvoiceSeq ?? this.nextInvoiceSeq,
       logoPath: logoPath ?? this.logoPath,
       signaturePath: signaturePath ?? this.signaturePath,
+      signatureImage: signatureImage ?? this.signatureImage,
       defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
       eurToJpyRate: eurToJpyRate ?? this.eurToJpyRate,
       themeMode: themeMode ?? this.themeMode,
@@ -1462,6 +1525,9 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
     if (signaturePath.present) {
       map['signature_path'] = Variable<String>(signaturePath.value);
     }
+    if (signatureImage.present) {
+      map['signature_image'] = Variable<Uint8List>(signatureImage.value);
+    }
     if (defaultHourlyRate.present) {
       map['default_hourly_rate'] = Variable<double>(defaultHourlyRate.value);
     }
@@ -1517,6 +1583,7 @@ class BusinessProfilesCompanion extends UpdateCompanion<BusinessProfile> {
           ..write('nextInvoiceSeq: $nextInvoiceSeq, ')
           ..write('logoPath: $logoPath, ')
           ..write('signaturePath: $signaturePath, ')
+          ..write('signatureImage: $signatureImage, ')
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
           ..write('eurToJpyRate: $eurToJpyRate, ')
           ..write('themeMode: $themeMode, ')
@@ -1712,6 +1779,17 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _shortNameMeta = const VerificationMeta(
+    'shortName',
+  );
+  @override
+  late final GeneratedColumn<String> shortName = GeneratedColumn<String>(
+    'short_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -1755,6 +1833,7 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
     defaultHourlyRate,
     paymentTermDays,
     paymentDueDayOfMonth,
+    shortName,
     notes,
     archived,
   ];
@@ -1891,6 +1970,12 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
         ),
       );
     }
+    if (data.containsKey('short_name')) {
+      context.handle(
+        _shortNameMeta,
+        shortName.isAcceptableOrUnknown(data['short_name']!, _shortNameMeta),
+      );
+    }
     if (data.containsKey('notes')) {
       context.handle(
         _notesMeta,
@@ -1976,6 +2061,10 @@ class $ClientsTable extends Clients with TableInfo<$ClientsTable, Client> {
         DriftSqlType.int,
         data['${effectivePrefix}payment_due_day_of_month'],
       ),
+      shortName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}short_name'],
+      ),
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -2018,6 +2107,11 @@ class Client extends DataClass implements Insertable<Client> {
   /// issue date, and [paymentTermDays] is ignored. Suits clients billed on a
   /// calendar-month cycle who pay on a fixed day.
   final int? paymentDueDayOfMonth;
+
+  /// Optional short form used in exported filenames, e.g. "DeliHome" for
+  /// "Deli Home Netherlands B.V.". Dropping a legal suffix is a rule the app
+  /// can apply; knowing which remaining words you'd drop is not, so it asks.
+  final String? shortName;
   final String notes;
   final bool archived;
   const Client({
@@ -2037,6 +2131,7 @@ class Client extends DataClass implements Insertable<Client> {
     this.defaultHourlyRate,
     required this.paymentTermDays,
     this.paymentDueDayOfMonth,
+    this.shortName,
     required this.notes,
     required this.archived,
   });
@@ -2062,6 +2157,9 @@ class Client extends DataClass implements Insertable<Client> {
     map['payment_term_days'] = Variable<int>(paymentTermDays);
     if (!nullToAbsent || paymentDueDayOfMonth != null) {
       map['payment_due_day_of_month'] = Variable<int>(paymentDueDayOfMonth);
+    }
+    if (!nullToAbsent || shortName != null) {
+      map['short_name'] = Variable<String>(shortName);
     }
     map['notes'] = Variable<String>(notes);
     map['archived'] = Variable<bool>(archived);
@@ -2090,6 +2188,9 @@ class Client extends DataClass implements Insertable<Client> {
       paymentDueDayOfMonth: paymentDueDayOfMonth == null && nullToAbsent
           ? const Value.absent()
           : Value(paymentDueDayOfMonth),
+      shortName: shortName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(shortName),
       notes: Value(notes),
       archived: Value(archived),
     );
@@ -2123,6 +2224,7 @@ class Client extends DataClass implements Insertable<Client> {
       paymentDueDayOfMonth: serializer.fromJson<int?>(
         json['paymentDueDayOfMonth'],
       ),
+      shortName: serializer.fromJson<String?>(json['shortName']),
       notes: serializer.fromJson<String>(json['notes']),
       archived: serializer.fromJson<bool>(json['archived']),
     );
@@ -2147,6 +2249,7 @@ class Client extends DataClass implements Insertable<Client> {
       'defaultHourlyRate': serializer.toJson<double?>(defaultHourlyRate),
       'paymentTermDays': serializer.toJson<int>(paymentTermDays),
       'paymentDueDayOfMonth': serializer.toJson<int?>(paymentDueDayOfMonth),
+      'shortName': serializer.toJson<String?>(shortName),
       'notes': serializer.toJson<String>(notes),
       'archived': serializer.toJson<bool>(archived),
     };
@@ -2169,6 +2272,7 @@ class Client extends DataClass implements Insertable<Client> {
     Value<double?> defaultHourlyRate = const Value.absent(),
     int? paymentTermDays,
     Value<int?> paymentDueDayOfMonth = const Value.absent(),
+    Value<String?> shortName = const Value.absent(),
     String? notes,
     bool? archived,
   }) => Client(
@@ -2192,6 +2296,7 @@ class Client extends DataClass implements Insertable<Client> {
     paymentDueDayOfMonth: paymentDueDayOfMonth.present
         ? paymentDueDayOfMonth.value
         : this.paymentDueDayOfMonth,
+    shortName: shortName.present ? shortName.value : this.shortName,
     notes: notes ?? this.notes,
     archived: archived ?? this.archived,
   );
@@ -2231,6 +2336,7 @@ class Client extends DataClass implements Insertable<Client> {
       paymentDueDayOfMonth: data.paymentDueDayOfMonth.present
           ? data.paymentDueDayOfMonth.value
           : this.paymentDueDayOfMonth,
+      shortName: data.shortName.present ? data.shortName.value : this.shortName,
       notes: data.notes.present ? data.notes.value : this.notes,
       archived: data.archived.present ? data.archived.value : this.archived,
     );
@@ -2255,6 +2361,7 @@ class Client extends DataClass implements Insertable<Client> {
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
           ..write('paymentTermDays: $paymentTermDays, ')
           ..write('paymentDueDayOfMonth: $paymentDueDayOfMonth, ')
+          ..write('shortName: $shortName, ')
           ..write('notes: $notes, ')
           ..write('archived: $archived')
           ..write(')'))
@@ -2279,6 +2386,7 @@ class Client extends DataClass implements Insertable<Client> {
     defaultHourlyRate,
     paymentTermDays,
     paymentDueDayOfMonth,
+    shortName,
     notes,
     archived,
   );
@@ -2302,6 +2410,7 @@ class Client extends DataClass implements Insertable<Client> {
           other.defaultHourlyRate == this.defaultHourlyRate &&
           other.paymentTermDays == this.paymentTermDays &&
           other.paymentDueDayOfMonth == this.paymentDueDayOfMonth &&
+          other.shortName == this.shortName &&
           other.notes == this.notes &&
           other.archived == this.archived);
 }
@@ -2323,6 +2432,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
   final Value<double?> defaultHourlyRate;
   final Value<int> paymentTermDays;
   final Value<int?> paymentDueDayOfMonth;
+  final Value<String?> shortName;
   final Value<String> notes;
   final Value<bool> archived;
   final Value<int> rowid;
@@ -2343,6 +2453,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     this.defaultHourlyRate = const Value.absent(),
     this.paymentTermDays = const Value.absent(),
     this.paymentDueDayOfMonth = const Value.absent(),
+    this.shortName = const Value.absent(),
     this.notes = const Value.absent(),
     this.archived = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2364,6 +2475,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     this.defaultHourlyRate = const Value.absent(),
     this.paymentTermDays = const Value.absent(),
     this.paymentDueDayOfMonth = const Value.absent(),
+    this.shortName = const Value.absent(),
     this.notes = const Value.absent(),
     this.archived = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2386,6 +2498,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     Expression<double>? defaultHourlyRate,
     Expression<int>? paymentTermDays,
     Expression<int>? paymentDueDayOfMonth,
+    Expression<String>? shortName,
     Expression<String>? notes,
     Expression<bool>? archived,
     Expression<int>? rowid,
@@ -2409,6 +2522,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
       if (paymentTermDays != null) 'payment_term_days': paymentTermDays,
       if (paymentDueDayOfMonth != null)
         'payment_due_day_of_month': paymentDueDayOfMonth,
+      if (shortName != null) 'short_name': shortName,
       if (notes != null) 'notes': notes,
       if (archived != null) 'archived': archived,
       if (rowid != null) 'rowid': rowid,
@@ -2432,6 +2546,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
     Value<double?>? defaultHourlyRate,
     Value<int>? paymentTermDays,
     Value<int?>? paymentDueDayOfMonth,
+    Value<String?>? shortName,
     Value<String>? notes,
     Value<bool>? archived,
     Value<int>? rowid,
@@ -2453,6 +2568,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
       defaultHourlyRate: defaultHourlyRate ?? this.defaultHourlyRate,
       paymentTermDays: paymentTermDays ?? this.paymentTermDays,
       paymentDueDayOfMonth: paymentDueDayOfMonth ?? this.paymentDueDayOfMonth,
+      shortName: shortName ?? this.shortName,
       notes: notes ?? this.notes,
       archived: archived ?? this.archived,
       rowid: rowid ?? this.rowid,
@@ -2514,6 +2630,9 @@ class ClientsCompanion extends UpdateCompanion<Client> {
         paymentDueDayOfMonth.value,
       );
     }
+    if (shortName.present) {
+      map['short_name'] = Variable<String>(shortName.value);
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -2545,6 +2664,7 @@ class ClientsCompanion extends UpdateCompanion<Client> {
           ..write('defaultHourlyRate: $defaultHourlyRate, ')
           ..write('paymentTermDays: $paymentTermDays, ')
           ..write('paymentDueDayOfMonth: $paymentDueDayOfMonth, ')
+          ..write('shortName: $shortName, ')
           ..write('notes: $notes, ')
           ..write('archived: $archived, ')
           ..write('rowid: $rowid')
@@ -3120,6 +3240,19 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _signedMeta = const VerificationMeta('signed');
+  @override
+  late final GeneratedColumn<bool> signed = GeneratedColumn<bool>(
+    'signed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("signed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _allowanceEnabledMeta = const VerificationMeta(
     'allowanceEnabled',
   );
@@ -3220,6 +3353,7 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
     notes,
     subtotalMinor,
     taxMinor,
+    signed,
     allowanceEnabled,
     allowanceRatePercent,
     allowanceMode,
@@ -3332,6 +3466,12 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
       context.handle(
         _taxMinorMeta,
         taxMinor.isAcceptableOrUnknown(data['tax_minor']!, _taxMinorMeta),
+      );
+    }
+    if (data.containsKey('signed')) {
+      context.handle(
+        _signedMeta,
+        signed.isAcceptableOrUnknown(data['signed']!, _signedMeta),
       );
     }
     if (data.containsKey('allowance_enabled')) {
@@ -3451,6 +3591,10 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
         DriftSqlType.int,
         data['${effectivePrefix}tax_minor'],
       )!,
+      signed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}signed'],
+      )!,
       allowanceEnabled: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}allowance_enabled'],
@@ -3514,6 +3658,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
   ///
   /// Defaults to off with a zero amount, which is what every invoice written
   /// before this feature carries — their totals are untouched.
+  /// Whether your saved signature is stamped on this invoice. Off for every
+  /// invoice written before signing existed — they were issued unsigned and
+  /// stay that way until you say otherwise.
+  final bool signed;
   final bool allowanceEnabled;
   final double allowanceRatePercent;
   final String allowanceMode;
@@ -3535,6 +3683,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     required this.notes,
     required this.subtotalMinor,
     required this.taxMinor,
+    required this.signed,
     required this.allowanceEnabled,
     required this.allowanceRatePercent,
     required this.allowanceMode,
@@ -3559,6 +3708,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     map['notes'] = Variable<String>(notes);
     map['subtotal_minor'] = Variable<int>(subtotalMinor);
     map['tax_minor'] = Variable<int>(taxMinor);
+    map['signed'] = Variable<bool>(signed);
     map['allowance_enabled'] = Variable<bool>(allowanceEnabled);
     map['allowance_rate_percent'] = Variable<double>(allowanceRatePercent);
     map['allowance_mode'] = Variable<String>(allowanceMode);
@@ -3586,6 +3736,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       notes: Value(notes),
       subtotalMinor: Value(subtotalMinor),
       taxMinor: Value(taxMinor),
+      signed: Value(signed),
       allowanceEnabled: Value(allowanceEnabled),
       allowanceRatePercent: Value(allowanceRatePercent),
       allowanceMode: Value(allowanceMode),
@@ -3617,6 +3768,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       notes: serializer.fromJson<String>(json['notes']),
       subtotalMinor: serializer.fromJson<int>(json['subtotalMinor']),
       taxMinor: serializer.fromJson<int>(json['taxMinor']),
+      signed: serializer.fromJson<bool>(json['signed']),
       allowanceEnabled: serializer.fromJson<bool>(json['allowanceEnabled']),
       allowanceRatePercent: serializer.fromJson<double>(
         json['allowanceRatePercent'],
@@ -3645,6 +3797,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       'notes': serializer.toJson<String>(notes),
       'subtotalMinor': serializer.toJson<int>(subtotalMinor),
       'taxMinor': serializer.toJson<int>(taxMinor),
+      'signed': serializer.toJson<bool>(signed),
       'allowanceEnabled': serializer.toJson<bool>(allowanceEnabled),
       'allowanceRatePercent': serializer.toJson<double>(allowanceRatePercent),
       'allowanceMode': serializer.toJson<String>(allowanceMode),
@@ -3669,6 +3822,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     String? notes,
     int? subtotalMinor,
     int? taxMinor,
+    bool? signed,
     bool? allowanceEnabled,
     double? allowanceRatePercent,
     String? allowanceMode,
@@ -3690,6 +3844,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     notes: notes ?? this.notes,
     subtotalMinor: subtotalMinor ?? this.subtotalMinor,
     taxMinor: taxMinor ?? this.taxMinor,
+    signed: signed ?? this.signed,
     allowanceEnabled: allowanceEnabled ?? this.allowanceEnabled,
     allowanceRatePercent: allowanceRatePercent ?? this.allowanceRatePercent,
     allowanceMode: allowanceMode ?? this.allowanceMode,
@@ -3719,6 +3874,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           ? data.subtotalMinor.value
           : this.subtotalMinor,
       taxMinor: data.taxMinor.present ? data.taxMinor.value : this.taxMinor,
+      signed: data.signed.present ? data.signed.value : this.signed,
       allowanceEnabled: data.allowanceEnabled.present
           ? data.allowanceEnabled.value
           : this.allowanceEnabled,
@@ -3755,6 +3911,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           ..write('notes: $notes, ')
           ..write('subtotalMinor: $subtotalMinor, ')
           ..write('taxMinor: $taxMinor, ')
+          ..write('signed: $signed, ')
           ..write('allowanceEnabled: $allowanceEnabled, ')
           ..write('allowanceRatePercent: $allowanceRatePercent, ')
           ..write('allowanceMode: $allowanceMode, ')
@@ -3767,7 +3924,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     number,
     clientId,
@@ -3781,6 +3938,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     notes,
     subtotalMinor,
     taxMinor,
+    signed,
     allowanceEnabled,
     allowanceRatePercent,
     allowanceMode,
@@ -3788,7 +3946,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     totalMinor,
     paidDate,
     createdAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3806,6 +3964,7 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           other.notes == this.notes &&
           other.subtotalMinor == this.subtotalMinor &&
           other.taxMinor == this.taxMinor &&
+          other.signed == this.signed &&
           other.allowanceEnabled == this.allowanceEnabled &&
           other.allowanceRatePercent == this.allowanceRatePercent &&
           other.allowanceMode == this.allowanceMode &&
@@ -3829,6 +3988,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
   final Value<String> notes;
   final Value<int> subtotalMinor;
   final Value<int> taxMinor;
+  final Value<bool> signed;
   final Value<bool> allowanceEnabled;
   final Value<double> allowanceRatePercent;
   final Value<String> allowanceMode;
@@ -3851,6 +4011,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     this.notes = const Value.absent(),
     this.subtotalMinor = const Value.absent(),
     this.taxMinor = const Value.absent(),
+    this.signed = const Value.absent(),
     this.allowanceEnabled = const Value.absent(),
     this.allowanceRatePercent = const Value.absent(),
     this.allowanceMode = const Value.absent(),
@@ -3874,6 +4035,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     this.notes = const Value.absent(),
     this.subtotalMinor = const Value.absent(),
     this.taxMinor = const Value.absent(),
+    this.signed = const Value.absent(),
     this.allowanceEnabled = const Value.absent(),
     this.allowanceRatePercent = const Value.absent(),
     this.allowanceMode = const Value.absent(),
@@ -3902,6 +4064,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     Expression<String>? notes,
     Expression<int>? subtotalMinor,
     Expression<int>? taxMinor,
+    Expression<bool>? signed,
     Expression<bool>? allowanceEnabled,
     Expression<double>? allowanceRatePercent,
     Expression<String>? allowanceMode,
@@ -3925,6 +4088,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
       if (notes != null) 'notes': notes,
       if (subtotalMinor != null) 'subtotal_minor': subtotalMinor,
       if (taxMinor != null) 'tax_minor': taxMinor,
+      if (signed != null) 'signed': signed,
       if (allowanceEnabled != null) 'allowance_enabled': allowanceEnabled,
       if (allowanceRatePercent != null)
         'allowance_rate_percent': allowanceRatePercent,
@@ -3951,6 +4115,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     Value<String>? notes,
     Value<int>? subtotalMinor,
     Value<int>? taxMinor,
+    Value<bool>? signed,
     Value<bool>? allowanceEnabled,
     Value<double>? allowanceRatePercent,
     Value<String>? allowanceMode,
@@ -3974,6 +4139,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
       notes: notes ?? this.notes,
       subtotalMinor: subtotalMinor ?? this.subtotalMinor,
       taxMinor: taxMinor ?? this.taxMinor,
+      signed: signed ?? this.signed,
       allowanceEnabled: allowanceEnabled ?? this.allowanceEnabled,
       allowanceRatePercent: allowanceRatePercent ?? this.allowanceRatePercent,
       allowanceMode: allowanceMode ?? this.allowanceMode,
@@ -4027,6 +4193,9 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     if (taxMinor.present) {
       map['tax_minor'] = Variable<int>(taxMinor.value);
     }
+    if (signed.present) {
+      map['signed'] = Variable<bool>(signed.value);
+    }
     if (allowanceEnabled.present) {
       map['allowance_enabled'] = Variable<bool>(allowanceEnabled.value);
     }
@@ -4072,6 +4241,7 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
           ..write('notes: $notes, ')
           ..write('subtotalMinor: $subtotalMinor, ')
           ..write('taxMinor: $taxMinor, ')
+          ..write('signed: $signed, ')
           ..write('allowanceEnabled: $allowanceEnabled, ')
           ..write('allowanceRatePercent: $allowanceRatePercent, ')
           ..write('allowanceMode: $allowanceMode, ')
@@ -6546,6 +6716,7 @@ typedef $$BusinessProfilesTableCreateCompanionBuilder =
       Value<int> nextInvoiceSeq,
       Value<String?> logoPath,
       Value<String?> signaturePath,
+      Value<Uint8List?> signatureImage,
       Value<double> defaultHourlyRate,
       Value<double> eurToJpyRate,
       Value<String> themeMode,
@@ -6578,6 +6749,7 @@ typedef $$BusinessProfilesTableUpdateCompanionBuilder =
       Value<int> nextInvoiceSeq,
       Value<String?> logoPath,
       Value<String?> signaturePath,
+      Value<Uint8List?> signatureImage,
       Value<double> defaultHourlyRate,
       Value<double> eurToJpyRate,
       Value<String> themeMode,
@@ -6703,6 +6875,11 @@ class $$BusinessProfilesTableFilterComposer
 
   ColumnFilters<String> get signaturePath => $composableBuilder(
     column: $table.signaturePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get signatureImage => $composableBuilder(
+    column: $table.signatureImage,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6856,6 +7033,11 @@ class $$BusinessProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<Uint8List> get signatureImage => $composableBuilder(
+    column: $table.signatureImage,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get defaultHourlyRate => $composableBuilder(
     column: $table.defaultHourlyRate,
     builder: (column) => ColumnOrderings(column),
@@ -6980,6 +7162,11 @@ class $$BusinessProfilesTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<Uint8List> get signatureImage => $composableBuilder(
+    column: $table.signatureImage,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<double> get defaultHourlyRate => $composableBuilder(
     column: $table.defaultHourlyRate,
     builder: (column) => column,
@@ -7068,6 +7255,7 @@ class $$BusinessProfilesTableTableManager
                 Value<int> nextInvoiceSeq = const Value.absent(),
                 Value<String?> logoPath = const Value.absent(),
                 Value<String?> signaturePath = const Value.absent(),
+                Value<Uint8List?> signatureImage = const Value.absent(),
                 Value<double> defaultHourlyRate = const Value.absent(),
                 Value<double> eurToJpyRate = const Value.absent(),
                 Value<String> themeMode = const Value.absent(),
@@ -7099,6 +7287,7 @@ class $$BusinessProfilesTableTableManager
                 nextInvoiceSeq: nextInvoiceSeq,
                 logoPath: logoPath,
                 signaturePath: signaturePath,
+                signatureImage: signatureImage,
                 defaultHourlyRate: defaultHourlyRate,
                 eurToJpyRate: eurToJpyRate,
                 themeMode: themeMode,
@@ -7131,6 +7320,7 @@ class $$BusinessProfilesTableTableManager
                 Value<int> nextInvoiceSeq = const Value.absent(),
                 Value<String?> logoPath = const Value.absent(),
                 Value<String?> signaturePath = const Value.absent(),
+                Value<Uint8List?> signatureImage = const Value.absent(),
                 Value<double> defaultHourlyRate = const Value.absent(),
                 Value<double> eurToJpyRate = const Value.absent(),
                 Value<String> themeMode = const Value.absent(),
@@ -7162,6 +7352,7 @@ class $$BusinessProfilesTableTableManager
                 nextInvoiceSeq: nextInvoiceSeq,
                 logoPath: logoPath,
                 signaturePath: signaturePath,
+                signatureImage: signatureImage,
                 defaultHourlyRate: defaultHourlyRate,
                 eurToJpyRate: eurToJpyRate,
                 themeMode: themeMode,
@@ -7213,6 +7404,7 @@ typedef $$ClientsTableCreateCompanionBuilder =
       Value<double?> defaultHourlyRate,
       Value<int> paymentTermDays,
       Value<int?> paymentDueDayOfMonth,
+      Value<String?> shortName,
       Value<String> notes,
       Value<bool> archived,
       Value<int> rowid,
@@ -7235,6 +7427,7 @@ typedef $$ClientsTableUpdateCompanionBuilder =
       Value<double?> defaultHourlyRate,
       Value<int> paymentTermDays,
       Value<int?> paymentDueDayOfMonth,
+      Value<String?> shortName,
       Value<String> notes,
       Value<bool> archived,
       Value<int> rowid,
@@ -7387,6 +7580,11 @@ class $$ClientsTableFilterComposer
 
   ColumnFilters<int> get paymentDueDayOfMonth => $composableBuilder(
     column: $table.paymentDueDayOfMonth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get shortName => $composableBuilder(
+    column: $table.shortName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7565,6 +7763,11 @@ class $$ClientsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get shortName => $composableBuilder(
+    column: $table.shortName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -7650,6 +7853,9 @@ class $$ClientsTableAnnotationComposer
     column: $table.paymentDueDayOfMonth,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get shortName =>
+      $composableBuilder(column: $table.shortName, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -7781,6 +7987,7 @@ class $$ClientsTableTableManager
                 Value<double?> defaultHourlyRate = const Value.absent(),
                 Value<int> paymentTermDays = const Value.absent(),
                 Value<int?> paymentDueDayOfMonth = const Value.absent(),
+                Value<String?> shortName = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7801,6 +8008,7 @@ class $$ClientsTableTableManager
                 defaultHourlyRate: defaultHourlyRate,
                 paymentTermDays: paymentTermDays,
                 paymentDueDayOfMonth: paymentDueDayOfMonth,
+                shortName: shortName,
                 notes: notes,
                 archived: archived,
                 rowid: rowid,
@@ -7823,6 +8031,7 @@ class $$ClientsTableTableManager
                 Value<double?> defaultHourlyRate = const Value.absent(),
                 Value<int> paymentTermDays = const Value.absent(),
                 Value<int?> paymentDueDayOfMonth = const Value.absent(),
+                Value<String?> shortName = const Value.absent(),
                 Value<String> notes = const Value.absent(),
                 Value<bool> archived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -7843,6 +8052,7 @@ class $$ClientsTableTableManager
                 defaultHourlyRate: defaultHourlyRate,
                 paymentTermDays: paymentTermDays,
                 paymentDueDayOfMonth: paymentDueDayOfMonth,
+                shortName: shortName,
                 notes: notes,
                 archived: archived,
                 rowid: rowid,
@@ -8400,6 +8610,7 @@ typedef $$InvoicesTableCreateCompanionBuilder =
       Value<String> notes,
       Value<int> subtotalMinor,
       Value<int> taxMinor,
+      Value<bool> signed,
       Value<bool> allowanceEnabled,
       Value<double> allowanceRatePercent,
       Value<String> allowanceMode,
@@ -8424,6 +8635,7 @@ typedef $$InvoicesTableUpdateCompanionBuilder =
       Value<String> notes,
       Value<int> subtotalMinor,
       Value<int> taxMinor,
+      Value<bool> signed,
       Value<bool> allowanceEnabled,
       Value<double> allowanceRatePercent,
       Value<String> allowanceMode,
@@ -8558,6 +8770,11 @@ class $$InvoicesTableFilterComposer
 
   ColumnFilters<int> get taxMinor => $composableBuilder(
     column: $table.taxMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get signed => $composableBuilder(
+    column: $table.signed,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8739,6 +8956,11 @@ class $$InvoicesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get signed => $composableBuilder(
+    column: $table.signed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get allowanceEnabled => $composableBuilder(
     column: $table.allowanceEnabled,
     builder: (column) => ColumnOrderings(column),
@@ -8848,6 +9070,9 @@ class $$InvoicesTableAnnotationComposer
 
   GeneratedColumn<int> get taxMinor =>
       $composableBuilder(column: $table.taxMinor, builder: (column) => column);
+
+  GeneratedColumn<bool> get signed =>
+      $composableBuilder(column: $table.signed, builder: (column) => column);
 
   GeneratedColumn<bool> get allowanceEnabled => $composableBuilder(
     column: $table.allowanceEnabled,
@@ -8999,6 +9224,7 @@ class $$InvoicesTableTableManager
                 Value<String> notes = const Value.absent(),
                 Value<int> subtotalMinor = const Value.absent(),
                 Value<int> taxMinor = const Value.absent(),
+                Value<bool> signed = const Value.absent(),
                 Value<bool> allowanceEnabled = const Value.absent(),
                 Value<double> allowanceRatePercent = const Value.absent(),
                 Value<String> allowanceMode = const Value.absent(),
@@ -9021,6 +9247,7 @@ class $$InvoicesTableTableManager
                 notes: notes,
                 subtotalMinor: subtotalMinor,
                 taxMinor: taxMinor,
+                signed: signed,
                 allowanceEnabled: allowanceEnabled,
                 allowanceRatePercent: allowanceRatePercent,
                 allowanceMode: allowanceMode,
@@ -9045,6 +9272,7 @@ class $$InvoicesTableTableManager
                 Value<String> notes = const Value.absent(),
                 Value<int> subtotalMinor = const Value.absent(),
                 Value<int> taxMinor = const Value.absent(),
+                Value<bool> signed = const Value.absent(),
                 Value<bool> allowanceEnabled = const Value.absent(),
                 Value<double> allowanceRatePercent = const Value.absent(),
                 Value<String> allowanceMode = const Value.absent(),
@@ -9067,6 +9295,7 @@ class $$InvoicesTableTableManager
                 notes: notes,
                 subtotalMinor: subtotalMinor,
                 taxMinor: taxMinor,
+                signed: signed,
                 allowanceEnabled: allowanceEnabled,
                 allowanceRatePercent: allowanceRatePercent,
                 allowanceMode: allowanceMode,
