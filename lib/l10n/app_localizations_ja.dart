@@ -343,6 +343,12 @@ class L10nJa extends L10n {
   String get invoicePurchaseOrder => '発注番号';
 
   @override
+  String get reportPeriodQuarter => '四半期';
+
+  @override
+  String get reportPeriodMonth => '月';
+
+  @override
   String get reportTimesheet => '稼働時間明細';
 
   @override

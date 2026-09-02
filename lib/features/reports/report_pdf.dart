@@ -117,6 +117,8 @@ abstract final class ReportPdf {
 
   // ---------------------------------------------------------------- Timesheet
 
+  /// [periodSlug] stamps the filename (e.g. `2026-08`) so exports of different
+  /// periods don't overwrite each other in the downloads folder.
   static Future<void> shareTimesheet({
     required BusinessProfile profile,
     required List<Client> clients,
@@ -124,6 +126,7 @@ abstract final class ReportPdf {
     required DateTime from,
     required DateTime toInclusive,
     required String lang,
+    required String periodSlug,
   }) async {
     final l = await L10n.delegate.load(Locale(lang));
     final fmt = Formatters(lang);
@@ -194,7 +197,7 @@ abstract final class ReportPdf {
       ],
     ));
     await Printing.sharePdf(
-        bytes: await doc.save(), filename: 'timesheet.pdf');
+        bytes: await doc.save(), filename: 'timesheet_$periodSlug.pdf');
   }
 
   static Future<void> saveTimesheetMarkdown({
@@ -204,6 +207,7 @@ abstract final class ReportPdf {
     required DateTime from,
     required DateTime toInclusive,
     required String lang,
+    required String periodSlug,
   }) async {
     final fmt = Formatters(lang);
     final names = {for (final c in clients) c.id: c.name};
@@ -252,7 +256,7 @@ abstract final class ReportPdf {
         ..writeln();
     });
     buffer.writeln('**Total: ${fmt.hoursFromMinutes(grand)}**');
-    await _saveMarkdown('timesheet', buffer.toString());
+    await _saveMarkdown('timesheet_$periodSlug', buffer.toString());
   }
 
   // -------------------------------------------------------------- Quarterly VAT

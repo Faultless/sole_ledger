@@ -127,6 +127,8 @@
   "invoiceVatId": "VAT ID",
   "invoicePurchaseOrder": "PO number",
 
+  "reportPeriodQuarter": "Quarter",
+  "reportPeriodMonth": "Month",
   "reportTimesheet": "Timesheet",
   "reportQuarterlyVat": "Quarterly VAT figures",
   "reportAnnualIncome": "Annual income statement",

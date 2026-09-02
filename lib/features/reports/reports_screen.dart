@@ -9,6 +9,7 @@ import '../../domain/enums.dart';
 import '../../domain/tax/depreciation.dart';
 import '../../domain/tax/expense_categories.dart';
 import '../../domain/tax/period_report.dart';
+import '../../domain/tax/report_period.dart';
 import '../../domain/tax/vat_treatment.dart';
 import '../../l10n/app_localizations.dart';
 import '../shell/app_shell.dart';
@@ -23,6 +24,10 @@ class ReportsScreen extends ConsumerStatefulWidget {
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   late int _year = DateTime.now().year;
   late Quarter _quarter = Quarter.ofMonth(DateTime.now().month);
+  late int _month = DateTime.now().month;
+  /// Granularity of the timesheet only. The VAT report is filed per quarter,
+  /// so it is deliberately not switchable.
+  ReportPeriodKind _timesheetKind = ReportPeriodKind.quarter;
   late String _lang;
   final _fxCtrl = TextEditingController(text: '160');
   bool _busy = false;
@@ -56,31 +61,38 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     }
   }
 
+  /// The span the timesheet covers, per the selected granularity.
+  ReportPeriod get _timesheetPeriod => switch (_timesheetKind) {
+        ReportPeriodKind.quarter => ReportPeriod.ofQuarter(_year, _quarter),
+        ReportPeriodKind.month => ReportPeriod.ofMonth(_year, _month),
+      };
+
   Future<void> _timesheet({required bool markdown}) => _run(() async {
         final repo = ref.read(repositoryProvider);
         final profile = await repo.ensureBusinessProfile();
         final clients = await repo.allClientsOnce();
-        final from = _quarter.start(_year);
-        final to = _quarter.endExclusive(_year);
-        final entries = await repo.timeEntriesBetween(from, to);
-        final toIncl = to.subtract(const Duration(days: 1));
+        final period = _timesheetPeriod;
+        final entries =
+            await repo.timeEntriesBetween(period.start, period.endExclusive);
         if (markdown) {
           await ReportPdf.saveTimesheetMarkdown(
             profile: profile,
             clients: clients,
             entries: entries,
-            from: from,
-            toInclusive: toIncl,
+            from: period.start,
+            toInclusive: period.endInclusive,
             lang: _lang,
+            periodSlug: period.slug,
           );
         } else {
           await ReportPdf.shareTimesheet(
             profile: profile,
             clients: clients,
             entries: entries,
-            from: from,
-            toInclusive: toIncl,
+            from: period.start,
+            toInclusive: period.endInclusive,
             lang: _lang,
+            periodSlug: period.slug,
           );
         }
       });
@@ -156,6 +168,57 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         );
       });
 
+  String _timesheetSubtitle() {
+    final period = _timesheetPeriod;
+    return switch (_timesheetKind) {
+      ReportPeriodKind.quarter => '$_year · Q${_quarter.number}',
+      ReportPeriodKind.month =>
+        ref.read(formattersProvider).monthYear(period.start),
+    };
+  }
+
+  /// Quarter-or-month choice for the timesheet, with the month picker shown
+  /// only when it applies. Lives inside the timesheet card because it governs
+  /// that report alone — the VAT return's period is set by the tax authority.
+  Widget _timesheetPeriodPicker(L10n l10n) {
+    final fmt = ref.watch(formattersProvider);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SegmentedButton<ReportPeriodKind>(
+          segments: [
+            ButtonSegment(
+                value: ReportPeriodKind.quarter,
+                label: Text(l10n.reportPeriodQuarter)),
+            ButtonSegment(
+                value: ReportPeriodKind.month,
+                label: Text(l10n.reportPeriodMonth)),
+          ],
+          selected: {_timesheetKind},
+          onSelectionChanged: (s) =>
+              setState(() => _timesheetKind = s.first),
+        ),
+        if (_timesheetKind == ReportPeriodKind.month) ...[
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            initialValue: _month,
+            isExpanded: true,
+            decoration: InputDecoration(
+                labelText: l10n.reportPeriodMonth, isDense: true),
+            items: [
+              for (var m = 1; m <= 12; m++)
+                DropdownMenuItem(
+                  value: m,
+                  child: Text(fmt.monthYear(DateTime(_year, m))),
+                ),
+            ],
+            onChanged: (v) => setState(() => _month = v ?? _month),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = L10n.of(context);
@@ -229,7 +292,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 _reportCard(
                   icon: Icons.schedule,
                   title: l10n.reportTimesheet,
-                  subtitle: '$_year · Q${_quarter.number}',
+                  subtitle: _timesheetSubtitle(),
+                  leadingContent: _timesheetPeriodPicker(l10n),
                   actions: [
                     _btn(l10n.commonExportPdf, () => _timesheet(markdown: false)),
                     _btn(l10n.commonExportMarkdown,
@@ -295,6 +359,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     required String title,
     required String subtitle,
     required List<Widget> actions,
+    /// Optional controls specific to this report, shown between the heading
+    /// and the export buttons.
+    Widget? leadingContent,
   }) {
     return Card(
       child: Padding(
@@ -321,6 +388,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 ),
               ),
             ]),
+            if (leadingContent != null) ...[
+              const SizedBox(height: 14),
+              leadingContent,
+            ],
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,

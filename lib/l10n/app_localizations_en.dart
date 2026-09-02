@@ -350,6 +350,12 @@ class L10nEn extends L10n {
   String get invoicePurchaseOrder => 'PO number';
 
   @override
+  String get reportPeriodQuarter => 'Quarter';
+
+  @override
+  String get reportPeriodMonth => 'Month';
+
+  @override
   String get reportTimesheet => 'Timesheet';
 
   @override

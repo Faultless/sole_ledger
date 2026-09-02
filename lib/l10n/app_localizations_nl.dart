@@ -350,6 +350,12 @@ class L10nNl extends L10n {
   String get invoicePurchaseOrder => 'Inkoopordernummer';
 
   @override
+  String get reportPeriodQuarter => 'Kwartaal';
+
+  @override
+  String get reportPeriodMonth => 'Maand';
+
+  @override
   String get reportTimesheet => 'Urenstaat';
 
   @override

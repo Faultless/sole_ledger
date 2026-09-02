@@ -121,6 +121,8 @@
   "invoiceVatId": "VAT番号",
   "invoicePurchaseOrder": "発注番号",
 
+  "reportPeriodQuarter": "四半期",
+  "reportPeriodMonth": "月",
   "reportTimesheet": "稼働時間明細",
   "reportQuarterlyVat": "四半期VAT集計",
   "reportAnnualIncome": "年間損益計算書",

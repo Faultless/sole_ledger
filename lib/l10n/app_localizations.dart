@@ -741,6 +741,18 @@ abstract class L10n {
   /// **'PO number'**
   String get invoicePurchaseOrder;
 
+  /// No description provided for @reportPeriodQuarter.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarter'**
+  String get reportPeriodQuarter;
+
+  /// No description provided for @reportPeriodMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'Month'**
+  String get reportPeriodMonth;
+
   /// No description provided for @reportTimesheet.
   ///
   /// In en, this message translates to:

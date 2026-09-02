@@ -121,6 +121,8 @@
   "invoiceVatId": "Btw-id",
   "invoicePurchaseOrder": "Inkoopordernummer",
 
+  "reportPeriodQuarter": "Kwartaal",
+  "reportPeriodMonth": "Maand",
   "reportTimesheet": "Urenstaat",
   "reportQuarterlyVat": "Btw-cijfers per kwartaal",
   "reportAnnualIncome": "Jaarlijkse winst-en-verliesrekening",
