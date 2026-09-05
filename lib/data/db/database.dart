@@ -281,47 +281,62 @@ class AppDatabase extends _$AppDatabase {
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onUpgrade: (m, from, to) async {
+          // Every step is idempotent. A ledger's schema and its recorded
+          // version can legitimately drift apart: beforeOpen's self-heal adds
+          // the newest columns on any open regardless of version, and a file
+          // restored from a backup or synced from another device can arrive
+          // with a version behind its own columns. A raw addColumn in that
+          // situation throws "duplicate column", onUpgrade never finishes, the
+          // version is never advanced — and the next open fails in exactly the
+          // same way, forever. Adding only what is missing lets such a database
+          // heal itself on the next open instead.
           if (from < 2) {
-            await m.addColumn(expenses, expenses.businessUsePercent);
+            await _addColumnIfMissing(m, expenses, expenses.businessUsePercent);
           }
           if (from < 3) {
-            await m.addColumn(expenses, expenses.receiptImage);
-            await m.addColumn(expenses, expenses.receiptMime);
+            await _addColumnIfMissing(m, expenses, expenses.receiptImage);
+            await _addColumnIfMissing(m, expenses, expenses.receiptMime);
           }
           if (from < 4) {
-            await m.addColumn(businessProfiles, businessProfiles.eurToJpyRate);
+            await _addColumnIfMissing(
+                m, businessProfiles, businessProfiles.eurToJpyRate);
           }
           if (from < 5) {
-            await m.createTable(assets);
+            await _ensureTable('assets', assets);
           }
           if (from < 6) {
-            await m.addColumn(businessProfiles, businessProfiles.themeMode);
+            await _addColumnIfMissing(
+                m, businessProfiles, businessProfiles.themeMode);
           }
           if (from < 7) {
-            await m.addColumn(invoiceLines, invoiceLines.fromTimeEntries);
+            await _addColumnIfMissing(
+                m, invoiceLines, invoiceLines.fromTimeEntries);
           }
           if (from < 8) {
-            await m.addColumn(clients, clients.paymentDueDayOfMonth);
+            await _addColumnIfMissing(
+                m, clients, clients.paymentDueDayOfMonth);
           }
           if (from < 9) {
-            await m.addColumn(invoices, invoices.dueDateEnabled);
-          }
-          if (from < 11) {
-            await m.addColumn(businessProfiles, businessProfiles.signatureImage);
-            await m.addColumn(invoices, invoices.signed);
-            await m.addColumn(clients, clients.shortName);
+            await _addColumnIfMissing(m, invoices, invoices.dueDateEnabled);
           }
           if (from < 10) {
-            await m.addColumn(invoices, invoices.allowanceEnabled);
-            await m.addColumn(invoices, invoices.allowanceRatePercent);
-            await m.addColumn(invoices, invoices.allowanceMode);
-            await m.addColumn(invoices, invoices.allowanceMinor);
-            await m.addColumn(
-                businessProfiles, businessProfiles.defaultAllowanceEnabled);
-            await m.addColumn(businessProfiles,
+            await _addColumnIfMissing(m, invoices, invoices.allowanceEnabled);
+            await _addColumnIfMissing(
+                m, invoices, invoices.allowanceRatePercent);
+            await _addColumnIfMissing(m, invoices, invoices.allowanceMode);
+            await _addColumnIfMissing(m, invoices, invoices.allowanceMinor);
+            await _addColumnIfMissing(
+                m, businessProfiles, businessProfiles.defaultAllowanceEnabled);
+            await _addColumnIfMissing(m, businessProfiles,
                 businessProfiles.defaultAllowanceRatePercent);
-            await m.addColumn(
-                businessProfiles, businessProfiles.defaultAllowanceMode);
+            await _addColumnIfMissing(
+                m, businessProfiles, businessProfiles.defaultAllowanceMode);
+          }
+          if (from < 11) {
+            await _addColumnIfMissing(
+                m, businessProfiles, businessProfiles.signatureImage);
+            await _addColumnIfMissing(m, invoices, invoices.signed);
+            await _addColumnIfMissing(m, clients, clients.shortName);
           }
         },
         beforeOpen: (details) async {
@@ -436,6 +451,20 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  /// Adds [column] to [table] during a migration unless it is already there.
+  /// See the note in [migration] for why every step has to tolerate a column
+  /// that already exists.
+  Future<void> _addColumnIfMissing(
+      Migrator m, TableInfo table, GeneratedColumn column) async {
+    if (await _hasColumn(table.actualTableName, column.name)) return;
+    await m.addColumn(table, column);
+  }
+
+  Future<bool> _hasColumn(String table, String column) async {
+    final info = await customSelect("PRAGMA table_info('$table')").get();
+    return info.any((row) => row.data['name'] == column);
+  }
+
   /// Adds [column] to [table] if it does not already exist. Safe to call on
   /// every open.
   Future<void> _ensureColumn({
@@ -443,10 +472,8 @@ class AppDatabase extends _$AppDatabase {
     required String column,
     required String definition,
   }) async {
-    final info = await customSelect("PRAGMA table_info('$table')").get();
-    final existing = info.map((row) => row.data['name'] as String?).toSet();
-    if (!existing.contains(column)) {
-      await customStatement('ALTER TABLE "$table" ADD COLUMN "$column" $definition');
-    }
+    if (await _hasColumn(table, column)) return;
+    await customStatement(
+        'ALTER TABLE "$table" ADD COLUMN "$column" $definition');
   }
 }

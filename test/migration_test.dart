@@ -150,6 +150,65 @@ void main() {
     await db.close();
   });
 
+  // The failure that shipped in 1.4.0. beforeOpen's self-heal adds the newest
+  // columns on any open, whatever the version says, so a ledger can end up
+  // holding columns its recorded version has never heard of. A migration that
+  // blindly re-adds them throws "duplicate column", never advances the version,
+  // and fails identically on every subsequent open — the app cannot start at
+  // all. Opening such a ledger has to heal it instead.
+  test('a ledger whose columns run ahead of its version still opens', () async {
+    await seedAtVersion(11);
+    // Wind only the version back, leaving every v10 and v11 column in place.
+    final db = AppDatabase(NativeDatabase(file));
+    await db.customStatement('PRAGMA user_version = 9');
+    await db.close();
+
+    final reopened = AppDatabase(NativeDatabase(file));
+    final repo = AppRepository(reopened);
+
+    // It opens, the data survives, and the version is brought up to date so
+    // the next open is a no-op rather than another repair.
+    final invoice = await repo.findInvoice('invoice-1');
+    expect(invoice, isNotNull);
+    expect(invoice!.number, 'INV-2025-0007');
+    expect(invoice.totalMinor, 150000);
+    final version =
+        await reopened.customSelect('PRAGMA user_version').getSingle();
+    expect(version.data['user_version'], 11);
+    await reopened.close();
+  });
+
+  test('opening twice in a row is stable', () async {
+    await seedAtVersion(11);
+    final db = AppDatabase(NativeDatabase(file));
+    await db.customStatement('PRAGMA user_version = 8');
+    await db.close();
+
+    for (var i = 0; i < 3; i++) {
+      final reopened = AppDatabase(NativeDatabase(file));
+      expect(await AppRepository(reopened).findInvoice('invoice-1'), isNotNull);
+      await reopened.close();
+    }
+  });
+
+  test('a partially migrated ledger heals whichever columns are missing',
+      () async {
+    await seedAtVersion(11);
+    final db = AppDatabase(NativeDatabase(file));
+    // Exactly the shape 1.4.0 left behind: v11 columns added, allowance
+    // columns present, version stranded below both.
+    await db.customStatement('ALTER TABLE invoices DROP COLUMN allowance_mode');
+    await db.customStatement('PRAGMA user_version = 9');
+    await db.close();
+
+    final reopened = AppDatabase(NativeDatabase(file));
+    final invoice = await AppRepository(reopened).findInvoice('invoice-1');
+    expect(invoice, isNotNull);
+    expect(invoice!.allowanceMode, 'surcharge');
+    expect(invoice.signed, isFalse);
+    await reopened.close();
+  });
+
   test('an upgraded ledger has no signature and no short names', () async {
     await seedAtVersion(7);
     final db = AppDatabase(NativeDatabase(file));
